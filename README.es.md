@@ -13,9 +13,7 @@
 
 <p align="center"><a href="README.md">Read in English</a></p>
 
-<p align="center">
-  <img src="media/session-dark.png" alt="Una sesión de Claude Code con tema oscuro: a la izquierda, el agente analiza un binario de reto con rea y registra hallazgos con record_finding; a la derecha, el panel Casebook muestra el objetivo, un arranque en frío de Ghidra de 18 segundos, siete hallazgos, dos preguntas abiertas y dieciocho registros de evidencia" width="860">
-</p>
+![Una sesión de Claude Code con tema oscuro: a la izquierda, el agente analiza un binario de reto con rea y registra hallazgos con record_finding; a la derecha, el panel Casebook muestra el objetivo, un arranque en frío de Ghidra de 18 segundos, siete hallazgos, dos preguntas abiertas y dieciocho registros de evidencia](media/session-dark.png)
 
 rea responde a cada consulta de análisis con un registro de evidencia (Evidence): un `evidence_id`, qué se preguntó, qué seguridad tiene (observado, derivado o inferido) y de dónde sale. Esos registros viven en la memoria de rea mientras dura la conexión MCP y, en la conversación, se pierden entre el texto del modelo. rea-casebook los reúne en un panel a medida que llegan, hace visible la espera de Ghidra y da al modelo una herramienta para registrar hallazgos que **tienen que citar evidencia que rea haya entregado de verdad**.
 
@@ -34,14 +32,10 @@ Necesita rea registrado como servidor MCP con el nombre `rea` (sus herramientas 
 
 La confianza se dibuja con una marca que cambia de forma además de color: ● observado, ◐ derivado, ○ inferido (con una leyenda al pie del panel). Los hallazgos y las preguntas largas ocupan dos líneas como mucho; la exportación los conserva enteros. El texto va en el color de texto del tema, y el color se reserva para las marcas.
 
-<p align="center">
-  <img src="media/casebook-light.png" alt="El panel con tema claro al final de la sesión: hallazgos F1 a F7 marcados como observados o derivados con su número de evidencias, dos preguntas abiertas, la lista de evidencia de la más reciente a la más antigua y la leyenda de las marcas" width="430">
-  <img src="media/casebook-dark.png" alt="El mismo panel con tema oscuro" width="430">
-</p>
+![El panel con tema claro al final de la sesión: hallazgos F1 a F7 marcados como observados o derivados con su número de evidencias, dos preguntas abiertas, la lista de evidencia de la más reciente a la más antigua y la leyenda de las marcas](media/casebook-light.png)
+![El mismo panel con tema oscuro](media/casebook-dark.png)
 
-<p align="center">
-  <img src="media/waiting-dark.png" alt="El panel durante la primera consulta a Ghidra: lleva 7 segundos esperando a binary_overview, con el aviso de que la primera consulta importa y analiza el objetivo" width="430">
-</p>
+![El panel durante la primera consulta a Ghidra: lleva 7 segundos esperando a binary_overview, con el aviso de que la primera consulta importa y analiza el objetivo](media/waiting-dark.png)
 
 El panel se abre solo la primera vez que el agente abre un binario, y `/casebook` lo vuelve a abrir. Un pie indica la versión del mod, para saber qué código está dibujando.
 
