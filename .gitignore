@@ -1,0 +1,6 @@
+.claude-plugin/types/
+tsconfig.json
+# Local Claude Code settings stay out; the project context is shared.
+.claude/*
+!.claude/CLAUDE.md
+node_modules/

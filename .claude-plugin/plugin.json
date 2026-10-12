@@ -1,0 +1,19 @@
+{
+  "name": "rea-casebook",
+  "version": "0.1.2",
+  "description": "A live pane with the Evidence rea gives the agent: the target, Ghidra's cold start, a timeline, open unknowns and findings that must cite real evidence, exported to Markdown.",
+  "author": { "name": "pablodiazjorge" },
+  "repository": "https://github.com/pablodiazjorge/rea-casebook",
+  "license": "MIT",
+  "keywords": ["mod", "reverse-engineering", "rea", "ghidra", "evidence", "mcp"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "Language of the pane, the export and what Claude reads from the casebook.",
+      "default": "English",
+      "options": ["English", "Español"]
+    }
+  }
+}

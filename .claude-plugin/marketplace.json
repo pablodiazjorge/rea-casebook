@@ -1,0 +1,13 @@
+{
+  "name": "rea-casebook",
+  "owner": { "name": "pablodiazjorge" },
+  "metadata": { "description": "A live casebook for reverse engineering with rea in Claude Code." },
+  "plugins": [
+    {
+      "name": "rea-casebook",
+      "description": "A live pane with the Evidence rea gives the agent, and findings that must cite real evidence.",
+      "source": "./",
+      "category": "development"
+    }
+  ]
+}
