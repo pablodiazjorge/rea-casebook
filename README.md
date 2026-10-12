@@ -108,6 +108,8 @@ Everything the mod does on its own, for anyone who reviews it before installing:
 - **The prompt it submits.** Only after `/casebook artifact`, when your rules do not allow the Artifact call: one message marked `[rea-casebook]` that asks Claude to publish the page, naming its path and, on later runs, the artifact's URL. It carries nothing else from the conversation.
 - **Network.** None of its own. The only data that leaves your machine is the artifact page you choose to publish, through Claude Code's Artifact tool.
 
+[PRIVACY.md](PRIVACY.md) sums this up as a privacy notice.
+
 ## Install
 
 Inside a Claude Code session:

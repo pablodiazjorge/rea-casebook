@@ -108,6 +108,8 @@ Todo lo que el mod hace por su cuenta, para quien quiera revisarlo antes de inst
 - **El prompt que envía.** Solo después de `/casebook artifact`, cuando tus reglas no permiten la llamada a Artifact: un mensaje marcado con `[rea-casebook]` que pide a Claude que publique la página, con su ruta y, en las siguientes veces, la URL del artifact. No lleva nada más de la conversación.
 - **Red.** Ninguna propia. Lo único que sale de tu equipo es la página del artifact que decides publicar, a través de la herramienta Artifact de Claude Code.
 
+[PRIVACY.md](PRIVACY.md) lo resume como aviso de privacidad (en inglés).
+
 ## Instalación
 
 Dentro de una sesión de Claude Code:
