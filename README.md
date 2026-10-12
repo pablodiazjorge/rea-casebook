@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude_Code-%E2%89%A5_2.1.296-D97757?logo=claude&logoColor=fff" alt="Claude Code 2.1.296 or newer">
-  <img src="https://img.shields.io/badge/version-0.1.2-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.1.3-blue" alt="Version">
   <img src="https://img.shields.io/badge/type-mod-6f42c1" alt="Claude Code mod">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
@@ -128,7 +128,7 @@ claude --plugin-dir .
 
 ## Status
 
-Version 0.1 is the first working pane. Planned next: a journal per session outside your project, an export to an artifact and a short recording. The design is recorded in [rea-lab](https://github.com/pablodiazjorge/rea-lab) (ADRs 0015 to 0017).
+Version 0.1 is the first working pane. Planned next: a journal per session outside your project and an export to an artifact. The design is recorded in [rea-lab](https://github.com/pablodiazjorge/rea-lab) (ADRs 0015 to 0017).
 
 ## License
 

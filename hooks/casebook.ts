@@ -2,6 +2,7 @@
 
 import type { CaseState, EvidenceItem, Finding, Target, Unknown } from '../types'
 import type { ReaOutcome } from './evidence'
+import { clip } from './messages'
 
 export const EMPTY_CASE: CaseState = {
   target: null,
@@ -38,7 +39,7 @@ export function callEnded(state: CaseState, id: string, tool: string, outcome: R
   if (outcome.kind === 'unknowns') {
     // The mutation Evidence reached the model too, so a finding may cite it.
     const added = outcome.mutations.map(
-      (mutation): EvidenceItem => ({ id: mutation.id, operation: tool, confidence: '', authority: '', detail: `question=${mutation.question.slice(0, 40)}`, limitations: 0, at }),
+      (mutation): EvidenceItem => ({ id: mutation.id, operation: tool, confidence: '', authority: '', detail: `question=${clip(mutation.question, 40)}`, limitations: 0, at }),
     )
     return { ...next, evidence: addEvidence(next.evidence, added), unknowns: outcome.unknowns.reduce(upsertUnknown, next.unknowns) }
   }

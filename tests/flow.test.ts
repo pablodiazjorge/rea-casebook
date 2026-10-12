@@ -37,7 +37,7 @@ describe('rea-casebook', () => {
     // A mark per confidence, and no authority word when it is the binary itself.
     expect(await pane.find({ type: 'Text', text: '● ' })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: ' - shipped-artifact' })).toBeUndefined()
-    expect(await pane.find({ type: 'Text', text: 'rea-casebook v0.1.2' })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: 'rea-casebook v0.1.3' })).toBeDefined()
     // Contrast: every Text names a theme color and none is dimmed, so the words follow light and
     // dark themes alike; uncolored or dimmed text came out light gray on a light terminal.
     const texts = await pane.findAll({ type: 'Text' })
@@ -115,7 +115,7 @@ describe('rea-casebook', () => {
     const pane = await $.ui.mount({ plugin: 'rea-casebook', surface: 'desktop', component: 'Pane', requestId: PANE, props: PANE_PROPS })
     expect(await pane.find({ type: 'Text', text: 'Open unknowns (1)' })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: 'Which routine validates the serial before the success message?' })).toBeDefined()
-    expect(await pane.find({ type: 'Text', text: 'record_unknown question=Which routine validates the serial befor' })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: 'record_unknown question=Which routine validates the serial…' })).toBeDefined()
     await pane.unmount()
 
     // In a narrow pane a long question takes two lines at most.
