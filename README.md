@@ -14,10 +14,7 @@
 <p align="center"><a href="README.es.md">Leer en español</a></p>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="media/session-dark.png">
-    <img src="media/session-light.png" alt="A Claude Code session: on the left, the agent analyses a challenge binary with rea and records findings with record_finding; on the right, the Casebook pane lists the target, a Ghidra cold start of 18 seconds, seven findings, two open unknowns and eighteen Evidence records" width="860">
-  </picture>
+  <img src="media/session-dark.png" alt="A Claude Code session in a dark theme: on the left, the agent analyses a challenge binary with rea and records findings with record_finding; on the right, the Casebook pane lists the target, a Ghidra cold start of 18 seconds, seven findings, two open unknowns and eighteen Evidence records" width="860">
 </p>
 
 rea answers each analysis call with an Evidence record: an `evidence_id`, what was asked, how sure it is (observed, derived or inferred) and where it comes from. Those records live in rea's memory for as long as the MCP connection lasts, and in the transcript they scroll away among the model's text. rea-casebook collects them in a pane as they arrive, makes the wait for Ghidra visible, and gives the model a tool to record findings that **must cite Evidence rea actually delivered**.

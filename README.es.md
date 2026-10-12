@@ -14,10 +14,7 @@
 <p align="center"><a href="README.md">Read in English</a></p>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="media/session-dark.png">
-    <img src="media/session-light.png" alt="Una sesión de Claude Code: a la izquierda, el agente analiza un binario de reto con rea y registra hallazgos con record_finding; a la derecha, el panel Casebook muestra el objetivo, un arranque en frío de Ghidra de 18 segundos, siete hallazgos, dos preguntas abiertas y dieciocho registros de evidencia" width="860">
-  </picture>
+  <img src="media/session-dark.png" alt="Una sesión de Claude Code con tema oscuro: a la izquierda, el agente analiza un binario de reto con rea y registra hallazgos con record_finding; a la derecha, el panel Casebook muestra el objetivo, un arranque en frío de Ghidra de 18 segundos, siete hallazgos, dos preguntas abiertas y dieciocho registros de evidencia" width="860">
 </p>
 
 rea responde a cada consulta de análisis con un registro de evidencia (Evidence): un `evidence_id`, qué se preguntó, qué seguridad tiene (observado, derivado o inferido) y de dónde sale. Esos registros viven en la memoria de rea mientras dura la conexión MCP y, en la conversación, se pierden entre el texto del modelo. rea-casebook los reúne en un panel a medida que llegan, hace visible la espera de Ghidra y da al modelo una herramienta para registrar hallazgos que **tienen que citar evidencia que rea haya entregado de verdad**.
