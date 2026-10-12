@@ -48,6 +48,7 @@ type Words = {
   opened: string
   exported: (path: string) => string
   exportFailed: (path: string) => string
+  exportRefused: (path: string) => string
   artifactEmpty: string
   artifactUnavailable: string
   artifactPublished: (url: string) => string
@@ -95,6 +96,7 @@ const EN = {
   opened: 'Casebook pane opened.',
   exported: (path) => `Casebook exported to ${path}.`,
   exportFailed: (path) => `Could not write ${path}.`,
+  exportRefused: (path) => `Not written: ${path} is a file coding agents read as instructions or settings. Choose another name.`,
   artifactEmpty: 'Nothing to publish yet: the casebook fills in once rea opens a binary.',
   artifactUnavailable: 'The Artifact tool is not available in this session. Use /casebook export to write the casebook as Markdown.',
   artifactPublished: (url) => `Casebook published: ${url}`,
@@ -142,6 +144,7 @@ const ES = {
   opened: 'Panel del casebook abierto.',
   exported: (path) => `Casebook exportado a ${path}.`,
   exportFailed: (path) => `No se ha podido escribir ${path}.`,
+  exportRefused: (path) => `No escrito: ${path} es un archivo que los agentes de programación leen como instrucciones o configuración. Elige otro nombre.`,
   artifactEmpty: 'Todavía no hay nada que publicar: el casebook se rellena cuando rea abre un binario.',
   artifactUnavailable: 'La herramienta Artifact no está disponible en esta sesión. Usa /casebook export para escribir el casebook en Markdown.',
   artifactPublished: (url) => `Casebook publicado: ${url}`,

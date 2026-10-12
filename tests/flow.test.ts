@@ -37,7 +37,7 @@ describe('rea-casebook', () => {
     // A mark per confidence, and no authority word when it is the binary itself.
     expect(await pane.find({ type: 'Text', text: '● ' })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: ' - shipped-artifact' })).toBeUndefined()
-    expect(await pane.find({ type: 'Text', text: 'rea-casebook v1.0.0' })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: 'rea-casebook v1.0.1' })).toBeDefined()
     // Contrast: every Text names a theme color and none is dimmed, so the words follow light and
     // dark themes alike; uncolored or dimmed text came out light gray on a light terminal.
     const texts = await pane.findAll({ type: 'Text' })
@@ -172,6 +172,10 @@ describe('rea-casebook', () => {
 
     expect((await $.command.run(command('export notes\\case.md'))).text).toBe('Casebook exported to notes\\case.md.')
     expect(written('/notes/case.md')).toBeDefined()
+    // Never an agent's instructions, and always Markdown.
+    expect((await $.command.run(command('export CLAUDE.md'))).text).toBe(words('en').exportRefused('CLAUDE.md'))
+    expect(written('/CLAUDE.md')).toBeUndefined()
+    expect((await $.command.run(command('export summary'))).text).toBe('Casebook exported to summary.md.')
     expect((await $.command.run(command('publish'))).text).toBe(words('en').usage)
   })
 })
@@ -213,7 +217,7 @@ describe('rea-casebook journal and artifact', () => {
 
     const lines = (w.files.get(JOURNAL) ?? '').trim().split('\n').map((line) => JSON.parse(line) as Record<string, unknown>)
     expect(lines.map((line) => line.type)).toEqual(['casebook', 'target', 'evidence', 'finding'])
-    expect(lines[0]).toMatchObject({ version: '1.0.0', session: 'sess-1', refused: 0, artifactUrl: null })
+    expect(lines[0]).toMatchObject({ version: '1.0.1', session: 'sess-1', refused: 0, artifactUrl: null })
     // Nothing lands in the project: the journal is the only file written.
     expect([...w.files.keys()]).toEqual([JOURNAL])
   })

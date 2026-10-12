@@ -14,12 +14,12 @@ import type { CaseState } from '../types'
 import { callEnded, callStarted, EMPTY_CASE, type FindingInput, type FindingOutcome, findingRefused, isQuick, oldestPending, recordFinding } from './casebook'
 import { baseName, readReaResult, type ReaOutcome, savedText } from './evidence'
 import { caseToHtml } from './html'
-import { casebookPath, hasCase, journalLines } from './journal'
+import { casebookBase, exportStem, hasCase, journalLines } from './journal'
 import { caseToMarkdown } from './markdown'
 import { clip, formatSeconds, type Lang, langOf, words } from './messages'
 
 const PANE = 'rea-casebook'
-const VERSION = '1.0.0'
+const VERSION = '1.0.1'
 const REA = /^mcp__rea__/u
 const FINDING_TOOL = 'mcp__rea-casebook__record_finding'
 const TIMELINE_MAX = 40
@@ -54,22 +54,23 @@ async function openPane($: EngineInterface): Promise<void> {
   await $.ui.open({ id: PANE, title: words(lang).name })
 }
 
+/** The home folder, read only from USERPROFILE (Windows) or HOME (macOS and Linux). */
 async function homeOf($: EngineInterface): Promise<string> {
   return (await $.env.get('USERPROFILE')) || (await $.env.get('HOME')) || ''
 }
 
-/** Where this session's journal or page lives, or null without a home or a rea call yet. */
-async function sessionFile($: EngineInterface, state: CaseState, extension: 'jsonl' | 'html'): Promise<string | null> {
+/** This session's files under ~/.rea-casebook/, without extension, or null before a rea call. */
+async function sessionBase($: EngineInterface, state: CaseState): Promise<string | null> {
   const home = await homeOf($)
   if (!home || state.startedAt === null) return null
-  return casebookPath(home, await $.session.id(), state.startedAt, extension)
+  return casebookBase(home, await $.session.id(), state.startedAt)
 }
 
 async function writeJournal($: EngineInterface): Promise<void> {
   const state = await read($, casebook)
   if (!hasCase(state)) return
-  const path = await sessionFile($, state, 'jsonl')
-  if (path) await $.fs.write(path, journalLines(state, await $.session.id(), VERSION))
+  const base = await sessionBase($, state)
+  if (base) await $.fs.write(`${base}.jsonl`, journalLines(state, await $.session.id(), VERSION))
 }
 
 /** Queues a rewrite of the journal; a failed write never reaches rea or the model. */
@@ -113,41 +114,48 @@ async function publishArtifact($: EngineInterface): Promise<string> {
   if (!hasCase(state)) return t.artifactEmpty
   const tools = await $.tool.list().catch(() => [])
   if (!tools.some((tool) => tool.name === 'Artifact')) return t.artifactUnavailable
-  const path = await sessionFile($, state, 'html')
-  if (!path) return t.artifactFailed(t.exportFailed('~/.rea-casebook'))
-  await $.fs.write(path, caseToHtml(state, lang, VERSION))
-  artifactPage = path
+  const base = await sessionBase($, state)
+  if (!base) return t.artifactFailed(t.exportFailed('~/.rea-casebook'))
+  const page = `${base}.html`
+  await $.fs.write(page, caseToHtml(state, lang, VERSION))
+  artifactPage = page
   const target = state.target ? baseName(state.target.path) : '-'
-  const input = { action: 'publish', file_path: path, description: t.artifactDescription(target), ...(state.artifactUrl ? { url: state.artifactUrl } : { icon: 'search' }) }
+  const description = t.artifactDescription(target)
+  const url = state.artifactUrl
+  const input = url ? { action: 'publish', file_path: page, description, url } : { action: 'publish', file_path: page, description, icon: 'search' }
   const verdict = await $.tool.check({ tool: 'Artifact', input }).catch(() => ({ decision: 'deny' as const }))
   if (verdict.decision !== 'allow') {
     // A command cannot wait for a turn it holds: the prompt goes in once the command has answered.
-    $.clock.after(0, () => void askClaudeToPublish($, path, state.artifactUrl).catch(() => undefined))
+    $.clock.after(0, () => void askClaudeToPublish($, page, url).catch(() => undefined))
     return t.artifactDelegated
   }
   let result: ToolCallResult
   try {
-    result = await $.tool.call({ tool: 'Artifact', ...input } as never)
+    // The one tool the mod calls by itself, with every field written out: the page goes to the
+    // person's own claude.ai account as a private artifact.
+    result = url
+      ? await $.tool.call({ tool: 'Artifact', action: 'publish', file_path: page, description, url } as never)
+      : await $.tool.call({ tool: 'Artifact', action: 'publish', file_path: page, description, icon: 'search' } as never)
   } catch (error) {
     return t.artifactFailed(String(error))
   }
-  const url = failed(result) ? null : artifactUrlOf(result)
-  if (!url) return t.artifactFailed(result.deny ?? result.text ?? '-')
-  await keepArtifactUrl($, url)
-  return t.artifactPublished(url)
+  const published = failed(result) ? null : artifactUrlOf(result)
+  if (!published) return t.artifactFailed(result.deny ?? result.text ?? '-')
+  await keepArtifactUrl($, published)
+  return t.artifactPublished(published)
 }
 
-/** Writes the Markdown export and answers with what the person reads. */
+/** Writes the Markdown export (always a .md file, never an agent's instructions) and answers. */
 async function exportCase($: EngineInterface, requested: string): Promise<string> {
   const t = words(lang)
   const state = await read($, casebook)
-  const name = state.target ? baseName(state.target.path).replace(/[^\w.-]+/gu, '-') : ''
-  const path = requested || (name ? `casebook-${name}.md` : 'casebook.md')
+  const stem = exportStem(requested, state.target ? baseName(state.target.path) : null)
+  if (stem === null) return t.exportRefused(requested)
   try {
-    await $.fs.write(path, caseToMarkdown(state, lang))
-    return t.exported(path)
+    await $.fs.write(`${stem}.md`, caseToMarkdown(state, lang))
+    return t.exported(`${stem}.md`)
   } catch {
-    return t.exportFailed(path)
+    return t.exportFailed(`${stem}.md`)
   }
 }
 

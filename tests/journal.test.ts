@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { EMPTY_CASE } from '../hooks/casebook'
-import { casebookPath, dayOf, hasCase, journalLines } from '../hooks/journal'
+import { casebookBase, dayOf, exportStem, hasCase, journalLines } from '../hooks/journal'
 import type { CaseState } from '../types'
 
 const AT = new Date(2026, 9, 12, 23, 30).getTime()
@@ -10,13 +10,21 @@ const ID = `ev_${'a'.repeat(64)}`
 describe('the journal', () => {
   test('lives under the home folder, one day folder per date, one file per session', () => {
     expect(dayOf(AT)).toBe('2026-10-12')
-    expect(casebookPath('D:\\home\\tester', 'a1b2-c3', AT, 'jsonl')).toBe('D:\\home\\tester\\.rea-casebook\\2026-10-12\\a1b2-c3.jsonl')
-    expect(casebookPath('/home/tester/', 'a1b2-c3', AT, 'html')).toBe('/home/tester/.rea-casebook/2026-10-12/a1b2-c3.html')
+    expect(casebookBase('D:\\home\\tester', 'a1b2-c3', AT)).toBe('D:\\home\\tester\\.rea-casebook\\2026-10-12\\a1b2-c3')
+    expect(casebookBase('/home/tester/', 'a1b2-c3', AT)).toBe('/home/tester/.rea-casebook/2026-10-12/a1b2-c3')
   })
 
   test('a session id never leaves its folder', () => {
-    expect(casebookPath('/home/tester', '../../evil', AT, 'jsonl')).toBe('/home/tester/.rea-casebook/2026-10-12/evil.jsonl')
-    expect(casebookPath('/home/tester', '..', AT, 'jsonl')).toBe('/home/tester/.rea-casebook/2026-10-12/session.jsonl')
+    expect(casebookBase('/home/tester', '../../evil', AT)).toBe('/home/tester/.rea-casebook/2026-10-12/evil')
+    expect(casebookBase('/home/tester', '..', AT)).toBe('/home/tester/.rea-casebook/2026-10-12/session')
+  })
+
+  test('the Markdown export is always a .md file and never an agent instructions or settings file', () => {
+    expect(exportStem('', 'c01 compare.exe')).toBe('casebook-c01-compare.exe')
+    expect(exportStem('', null)).toBe('casebook')
+    expect(exportStem('notes\\case.md', null)).toBe('notes\\case')
+    expect(exportStem('report', null)).toBe('report')
+    for (const name of ['CLAUDE.md', 'docs/agents.md', 'GEMINI', '.claude/settings', 'D:\\repo\\.claude\\notes.md']) expect(exportStem(name, null)).toBeNull()
   })
 
   test('is written only once the session has a case', () => {
