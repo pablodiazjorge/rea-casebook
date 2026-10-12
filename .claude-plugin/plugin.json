@@ -1,6 +1,6 @@
 {
   "name": "rea-casebook",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "A live pane with the Evidence rea gives the agent: the target, Ghidra's cold start, a timeline, open unknowns and findings that must cite real evidence, exported to Markdown.",
   "author": { "name": "pablodiazjorge" },
   "repository": "https://github.com/pablodiazjorge/rea-casebook",

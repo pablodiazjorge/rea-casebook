@@ -34,6 +34,10 @@ export type CaseState = {
   findings: Finding[]
   /** record_finding calls refused because they cited evidence rea never delivered. */
   refused: number
+  /** When the first rea call of the session started: it names the day folder of the journal. */
+  startedAt: number | null
+  /** The artifact the casebook was published to, so later publishes update it in place. */
+  artifactUrl: string | null
 }
 
 declare module 'claude-code' {

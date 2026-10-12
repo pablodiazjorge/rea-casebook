@@ -15,7 +15,8 @@ A Claude Code mod (a plugin with function hooks) that collects the Evidence rea 
 | `hooks/register.tsx` | The only module that uses `$`: hooks, pane, command and tool |
 | `hooks/evidence.ts` | Reads a rea result (Evidence, target, unknowns, saved file, error) |
 | `hooks/casebook.ts` | The casebook's state changes and the `record_finding` rule |
-| `hooks/markdown.ts` | The Markdown export |
+| `hooks/journal.ts` | The session journal under `~/.rea-casebook/` and its paths (ADR 0016) |
+| `hooks/markdown.ts`, `hooks/html.ts` | The Markdown export and the artifact page (ADR 0017) |
 | `hooks/messages.ts` | Every word in English and Spanish |
 | `tests/` | Pure tests per module, `flow.test.ts` against `world.ts`, real rea results in `fixtures/rea.ts` |
 

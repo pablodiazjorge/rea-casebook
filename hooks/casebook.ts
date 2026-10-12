@@ -12,6 +12,8 @@ export const EMPTY_CASE: CaseState = {
   unknowns: [],
   findings: [],
   refused: 0,
+  startedAt: null,
+  artifactUrl: null,
 }
 
 // A finding may cite only what is kept, so the cap is far above a long session's few hundred calls.
@@ -23,6 +25,7 @@ const EVIDENCE_ID = /^ev_[0-9a-f]{64}$/u
 export const callStarted = (state: CaseState, id: string, tool: string, at: number): CaseState => ({
   ...state,
   pending: [...state.pending.filter((call) => call.id !== id), { id, tool, since: at }],
+  startedAt: state.startedAt ?? at,
 })
 
 /** Tools that never wait for Ghidra: their duration says nothing about the cold start. */

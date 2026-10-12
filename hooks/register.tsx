@@ -3,22 +3,28 @@
 // records with record_finding, a tool that refuses any evidence_id rea never delivered.
 //
 // It reads rea's results as they pass through `tool.call` (ADR 0015 of rea-lab) and never calls rea
-// on its own, so it needs no permission beyond the person's own rules for rea.
+// on its own, so it needs no permission beyond the person's own rules for rea. Each change rewrites
+// the session's journal under ~/.rea-casebook/ (ADR 0016); `/casebook export` and `/casebook
+// artifact` are the only ways the casebook leaves it (ADR 0017).
 
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderInput } from 'claude-code'
+import type { EngineInterface, Register, RenderInput, ToolCallResult } from 'claude-code'
 
 import type { CaseState } from '../types'
 import { callEnded, callStarted, EMPTY_CASE, type FindingInput, type FindingOutcome, findingRefused, isQuick, oldestPending, recordFinding } from './casebook'
 import { baseName, readReaResult, type ReaOutcome, savedText } from './evidence'
+import { caseToHtml } from './html'
+import { casebookPath, hasCase, journalLines } from './journal'
 import { caseToMarkdown } from './markdown'
 import { clip, formatSeconds, type Lang, langOf, words } from './messages'
 
 const PANE = 'rea-casebook'
-const VERSION = '0.1.3'
+const VERSION = '0.2.0'
 const REA = /^mcp__rea__/u
 const FINDING_TOOL = 'mcp__rea-casebook__record_finding'
 const TIMELINE_MAX = 40
+// Marks the prompts the mod submits, so a reader of the transcript knows where they came from.
+const OWN_MARK = '[rea-casebook]'
 
 const casebook = atom({ plugin: 'rea-casebook', key: 'case' } as const, EMPTY_CASE)
 const now = atom({ plugin: 'rea-casebook', key: 'now' } as const, 0)
@@ -26,6 +32,10 @@ const now = atom({ plugin: 'rea-casebook', key: 'now' } as const, 0)
 let lang: Lang = 'en'
 // Opens the pane by itself once, at the first binary; reset on a reload, which is harmless.
 let isAutoOpened = false
+// Journal writes run one after another, so an older casebook never overwrites a newer one.
+let journalQueue: Promise<void> = Promise.resolve()
+// The page `/casebook artifact` last wrote: an Artifact publish of this file is the casebook's.
+let artifactPage: string | null = null
 
 // ---------------------------------------------------------------------------
 // Engine helpers
@@ -42,6 +52,89 @@ async function readSaved($: EngineInterface, tool: string, path: string, at: num
 
 async function openPane($: EngineInterface): Promise<void> {
   await $.ui.open({ id: PANE, title: words(lang).name })
+}
+
+async function homeOf($: EngineInterface): Promise<string> {
+  return (await $.env.get('USERPROFILE')) || (await $.env.get('HOME')) || ''
+}
+
+/** Where this session's journal or page lives, or null without a home or a rea call yet. */
+async function sessionFile($: EngineInterface, state: CaseState, extension: 'jsonl' | 'html'): Promise<string | null> {
+  const home = await homeOf($)
+  if (!home || state.startedAt === null) return null
+  return casebookPath(home, await $.session.id(), state.startedAt, extension)
+}
+
+async function writeJournal($: EngineInterface): Promise<void> {
+  const state = await read($, casebook)
+  if (!hasCase(state)) return
+  const path = await sessionFile($, state, 'jsonl')
+  if (path) await $.fs.write(path, journalLines(state, await $.session.id(), VERSION))
+}
+
+/** Queues a rewrite of the journal; a failed write never reaches rea or the model. */
+function saveJournal($: EngineInterface): void {
+  journalQueue = journalQueue.then(() => writeJournal($)).catch(() => undefined)
+}
+
+const failed = (result: ToolCallResult) => result.deny !== undefined || result.isError === true
+
+/** The artifact URL in an Artifact result: its own field, or the first claude.ai link in its text. */
+function artifactUrlOf(result: ToolCallResult): string | null {
+  const own = (result.result as { url?: unknown } | undefined)?.url
+  if (typeof own === 'string' && own.startsWith('https://')) return own
+  return /https:\/\/claude\.ai\/[^\s"'<>)]+/u.exec(result.text ?? '')?.[0] ?? null
+}
+
+const samePath = (left: string, right: string) => left.replace(/\\/gu, '/').toLowerCase() === right.replace(/\\/gu, '/').toLowerCase()
+
+async function keepArtifactUrl($: EngineInterface, url: string): Promise<void> {
+  await update($, casebook, (state) => ({ ...state, artifactUrl: url }))
+  saveJournal($)
+}
+
+/** Claude publishes the page in a visible turn, where the person's permissions decide as usual. */
+async function askClaudeToPublish($: EngineInterface, path: string, url: string | null): Promise<void> {
+  const where = url ? `to its existing artifact ${url}` : 'as a new private artifact with the icon "search"'
+  await $.prompt.submit({
+    text:
+      `${OWN_MARK} The user ran /casebook artifact. Publish the file ${path} with the Artifact tool ${where}, without changing its content. ` +
+      'The rea-casebook mod wrote it from this session\'s casebook; read the whole file first, as the Artifact tool requires.',
+  })
+}
+
+/**
+ * Writes the casebook page and publishes it. The mod calls Artifact itself only when the person's
+ * permissions already allow it; otherwise it asks Claude, so the person decides as for any other call.
+ */
+async function publishArtifact($: EngineInterface): Promise<string> {
+  const t = words(lang)
+  const state = await read($, casebook)
+  if (!hasCase(state)) return t.artifactEmpty
+  const tools = await $.tool.list().catch(() => [])
+  if (!tools.some((tool) => tool.name === 'Artifact')) return t.artifactUnavailable
+  const path = await sessionFile($, state, 'html')
+  if (!path) return t.artifactFailed(t.exportFailed('~/.rea-casebook'))
+  await $.fs.write(path, caseToHtml(state, lang, VERSION))
+  artifactPage = path
+  const target = state.target ? baseName(state.target.path) : '-'
+  const input = { action: 'publish', file_path: path, description: t.artifactDescription(target), ...(state.artifactUrl ? { url: state.artifactUrl } : { icon: 'search' }) }
+  const verdict = await $.tool.check({ tool: 'Artifact', input }).catch(() => ({ decision: 'deny' as const }))
+  if (verdict.decision !== 'allow') {
+    // A command cannot wait for a turn it holds: the prompt goes in once the command has answered.
+    $.clock.after(0, () => void askClaudeToPublish($, path, state.artifactUrl).catch(() => undefined))
+    return t.artifactDelegated
+  }
+  let result: ToolCallResult
+  try {
+    result = await $.tool.call({ tool: 'Artifact', ...input } as never)
+  } catch (error) {
+    return t.artifactFailed(String(error))
+  }
+  const url = failed(result) ? null : artifactUrlOf(result)
+  if (!url) return t.artifactFailed(result.deny ?? result.text ?? '-')
+  await keepArtifactUrl($, url)
+  return t.artifactPublished(url)
 }
 
 /** Writes the Markdown export and answers with what the person reads. */
@@ -223,6 +316,7 @@ export const register: Register = (on, options) => {
       let outcome = readReaResult(tool, text, ran.isError === true, at)
       if (outcome.kind === 'saved') outcome = await readSaved($, tool, outcome.path, at)
       await update($, casebook, (state) => callEnded(state, id, tool, outcome, at))
+      saveJournal($)
       if (outcome.kind === 'opened' && !isAutoOpened) {
         isAutoOpened = true
         void openPane($)
@@ -245,6 +339,7 @@ export const register: Register = (on, options) => {
       return outcome.reason === 'unknown_evidence' ? findingRefused(state) : state
     })
     const result = outcome as FindingOutcome
+    if (result.ok || result.reason === 'unknown_evidence') saveJournal($)
     if (result.ok) return { result: t.findingRecorded(result.finding.id) }
     return { deny: result.reason === 'unknown_evidence' ? t.unknownEvidence(result.missing) : t.invalidFinding(result.problems) }
   }).catch(() => ({ deny: words(lang).findingFailed }))
@@ -257,8 +352,26 @@ export const register: Register = (on, options) => {
       return { text: t.opened }
     }
     if (verb === 'export') return { text: await exportCase($, rest.join(' ')) }
+    if (verb === 'artifact' && rest.length === 0) return { text: await publishArtifact($) }
     return { text: t.usage }
   })
+
+  // When Claude publishes the casebook's page (after `/casebook artifact` asked it to), keep the URL
+  // so the next publish updates the same artifact. Any other Artifact call passes untouched.
+  on('tool.call', { tool: 'Artifact' }, async ($, e, next) => {
+    const ran = await next(e)
+    try {
+      const input = e as unknown as { action?: unknown; asset?: unknown; file_path?: unknown }
+      const isPagePublish = (input.action === undefined || input.action === 'publish') && input.asset !== true
+      if (isPagePublish && typeof input.file_path === 'string' && artifactPage && samePath(input.file_path, artifactPage) && !failed(ran)) {
+        const url = artifactUrlOf(ran)
+        if (url) await keepArtifactUrl($, url)
+      }
+    } catch {
+      // Watching never changes what the Artifact call returns.
+    }
+    return ran
+  }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, ($, e) => drawPane($, e, e.props.bodyColumns))
 }

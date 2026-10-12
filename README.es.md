@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude_Code-%E2%89%A5_2.1.296-D97757?logo=claude&logoColor=fff" alt="Claude Code 2.1.296 o posterior">
-  <img src="https://img.shields.io/badge/versi%C3%B3n-0.1.3-blue" alt="Versión">
+  <img src="https://img.shields.io/badge/versi%C3%B3n-0.2.0-blue" alt="Versión">
   <img src="https://img.shields.io/badge/tipo-mod-6f42c1" alt="Mod de Claude Code">
   <img src="https://img.shields.io/badge/licencia-MIT-green" alt="Licencia">
 </p>
@@ -57,6 +57,7 @@ Los identificadores de la evidencia de mutación que devuelven `record_unknown` 
 2. Cuando un resultado es demasiado grande para el cliente y se guarda en un archivo, el mod lee la evidencia de ese archivo.
 3. El mod nunca llama a rea por su cuenta. Todo lo que muestra es lo que el agente ya recibió.
 4. El estado vive en la sesión (`$.state`) y lo dibuja el panel. Un segundo `open_binary` conserva la evidencia del primero, así que al comparar dos compilaciones se mantienen las dos.
+5. Cada cambio reescribe el diario de la sesión, `~/.rea-casebook/<fecha>/<sesión>.jsonl`: una línea para la sesión y sus contadores, otra para el objetivo con su ruta local completa y una por cada registro de evidencia, pregunta y hallazgo, en el orden en que ocurrieron. El diario se queda en tu carpeta personal; solo `/casebook export` y `/casebook artifact` sacan el expediente de ahí.
 
 ## El comando
 
@@ -65,8 +66,11 @@ Los identificadores de la evidencia de mutación que devuelven `record_unknown` 
 | `/casebook` | Abre el panel |
 | `/casebook export` | Escribe el expediente en Markdown en `casebook-<objetivo>.md`, en la carpeta de la sesión |
 | `/casebook export <archivo>` | Lo escribe en ese archivo |
+| `/casebook artifact` | Publica el expediente como artifact privado de claude.ai; las siguientes veces actualiza el mismo artifact |
 
 La exportación incluye el objetivo (nombre, formato, arquitectura y SHA-256), el arranque en frío, los hallazgos con su evidencia, confianza y autoridad, las preguntas abiertas y la lista de evidencia. Nombra el archivo, nunca su ruta local.
+
+El artifact es una página con las mismas secciones, con tema claro y oscuro y cada `evidence_id` completo. El mod la escribe junto al diario y la publica él mismo con la herramienta Artifact cuando tus permisos ya permiten esa herramienta; si no, le pide a Claude que la publique en un turno visible, donde decides como en cualquier otra llamada. Necesita una sesión que ofrezca la herramienta Artifact, como la app de escritorio de Claude; en otra, el comando lo indica y remite a `/casebook export`.
 
 ## Idioma
 
@@ -76,17 +80,19 @@ En `/config`, dentro de rea-casebook, **Language** es `English` (el predetermina
 
 El panel no necesita reglas: el mod lee los resultados de llamadas a rea que tus propias reglas ya permitieron y no llama a nada por su cuenta.
 
-`record_finding` la llama el modelo, así que pasa por tus permisos como cualquier otra herramienta: Claude Code puede pedirte confirmación cada vez o, en el modo automático, decidirlo el clasificador. Solo escribe en el panel, de modo que conviene permitirla en `.claude/settings.json` (el del proyecto) o en `~/.claude/settings.json`:
+`record_finding` la llama el modelo, así que pasa por tus permisos como cualquier otra herramienta: Claude Code puede pedirte confirmación cada vez o, en el modo automático, decidirlo el clasificador. Solo escribe en el panel, de modo que conviene permitirla en `.claude/settings.json` (el del proyecto) o en `~/.claude/settings.json`.
+
+Cuando Claude publica el artifact por ti, antes lee la página que el mod escribió en `~/.rea-casebook/`, fuera de tu proyecto, y Claude Code te pregunta por esa lectura. La segunda regla de abajo permite leer solo esa carpeta, para que la publicación no se detenga ahí:
 
 ```json
 {
   "permissions": {
-    "allow": ["mcp__rea-casebook__record_finding"]
+    "allow": ["mcp__rea-casebook__record_finding", "Read(~/.rea-casebook/**)"]
   }
 }
 ```
 
-`/casebook export` escribe un archivo cuando lo ejecutas. El mod lo escribe a través del motor, sin pasar por tus reglas.
+El mod escribe archivos a través del motor, sin pasar por tus reglas: el diario en `~/.rea-casebook/` tras cada cambio, la página del artifact a su lado y el archivo que indiques a `/casebook export` cuando lo ejecutas. `/casebook artifact` llama a la herramienta Artifact por su cuenta solo si tus reglas ya la permiten sin preguntar; si no, la llamada la hace Claude y se aplican tus reglas.
 
 ## Instalación
 
@@ -108,7 +114,7 @@ claude plugin install rea-casebook@rea-casebook
 
 ## Desarrollo
 
-La lectura de los resultados de rea, el estado del expediente, la exportación y los textos son módulos sin dependencias del motor que se prueban directamente. Los hooks se prueban contra un motor simulado cuyo rea responde con resultados reales de rea 6.4.0, con las rutas locales sustituidas (`tests/fixtures/rea.ts`).
+La lectura de los resultados de rea, el estado del expediente, el diario, las dos exportaciones y los textos son módulos sin dependencias del motor que se prueban directamente. Los hooks se prueban contra un motor simulado cuyo rea responde con resultados reales de rea 6.4.0, con las rutas locales sustituidas (`tests/fixtures/rea.ts`).
 
 ```bash
 claude plugin validate .claude-plugin/plugin.json
@@ -128,7 +134,7 @@ claude --plugin-dir .
 
 ## Estado
 
-La versión 0.1 es el primer panel funcional. Lo siguiente: un diario por sesión fuera de tu proyecto y una exportación a artifact. El diseño está documentado en [rea-lab](https://github.com/pablodiazjorge/rea-lab) (ADR 0015 a 0017).
+La versión 0.2 añade el diario de la sesión y la exportación a artifact al panel de la 0.1. El diseño está documentado en [rea-lab](https://github.com/pablodiazjorge/rea-lab) (ADR 0015 a 0017).
 
 ## Licencia
 

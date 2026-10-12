@@ -48,7 +48,16 @@ type Words = {
   opened: string
   exported: (path: string) => string
   exportFailed: (path: string) => string
+  artifactEmpty: string
+  artifactUnavailable: string
+  artifactPublished: (url: string) => string
+  artifactFailed: (reason: string) => string
+  artifactDelegated: string
+  artifactDescription: (target: string) => string
   usage: string
+  htmlTitle: (target: string) => string
+  htmlIntro: string
+  htmlFooter: (version: string) => string
   markdownTitle: (target: string) => string
   markdownTarget: string
   markdownFindings: string
@@ -61,7 +70,7 @@ type Words = {
 
 const EN = {
   name: 'Casebook',
-  command: 'Show the rea casebook pane, or export it with "/casebook export [file]"',
+  command: 'Show the rea casebook pane; "/casebook export [file]" writes it as Markdown, "/casebook artifact" publishes it',
   noTarget: 'No binary open yet. The pane fills in as rea delivers Evidence.',
   target: (name, format, architecture) => `${name} - ${format} ${architecture}`,
   ghidraWaiting: (tool, elapsed) => `Waiting for ${tool}: ${elapsed} (the first Ghidra query imports and analyses the target)`,
@@ -86,7 +95,16 @@ const EN = {
   opened: 'Casebook pane opened.',
   exported: (path) => `Casebook exported to ${path}.`,
   exportFailed: (path) => `Could not write ${path}.`,
-  usage: 'Usage: /casebook, or /casebook export [file]',
+  artifactEmpty: 'Nothing to publish yet: the casebook fills in once rea opens a binary.',
+  artifactUnavailable: 'The Artifact tool is not available in this session. Use /casebook export to write the casebook as Markdown.',
+  artifactPublished: (url) => `Casebook published: ${url}`,
+  artifactFailed: (reason) => `Could not publish the casebook: ${reason}`,
+  artifactDelegated: 'Asked Claude to publish the casebook as an artifact. Approve the Artifact call if Claude Code asks.',
+  artifactDescription: (target) => `The rea casebook of ${target}: findings with the Evidence they cite, open unknowns and every Evidence record.`,
+  usage: 'Usage: /casebook, /casebook export [file] or /casebook artifact',
+  htmlTitle: (target) => `Casebook ${target}`,
+  htmlIntro: 'What rea delivered to the agent in one Claude Code session. Every finding cites evidence_id values that rea returned in that session; any of them can be checked with rea.',
+  htmlFooter: (version) => `Exported by rea-casebook ${version}.`,
   markdownTitle: (target) => `Casebook: ${target}`,
   markdownTarget: 'Target',
   markdownFindings: 'Findings',
@@ -99,7 +117,7 @@ const EN = {
 
 const ES = {
   name: 'Casebook',
-  command: 'Muestra el panel del casebook de rea, o expórtalo con "/casebook export [archivo]"',
+  command: 'Muestra el panel del casebook de rea; "/casebook export [archivo]" lo escribe en Markdown y "/casebook artifact" lo publica',
   noTarget: 'Todavía no hay ningún binario abierto. El panel se rellena a medida que rea entrega evidencia.',
   target: (name, format, architecture) => `${name} - ${format} ${architecture}`,
   ghidraWaiting: (tool, elapsed) => `Esperando a ${tool}: ${elapsed} (la primera consulta a Ghidra importa y analiza el objetivo)`,
@@ -124,7 +142,16 @@ const ES = {
   opened: 'Panel del casebook abierto.',
   exported: (path) => `Casebook exportado a ${path}.`,
   exportFailed: (path) => `No se ha podido escribir ${path}.`,
-  usage: 'Uso: /casebook, o /casebook export [archivo]',
+  artifactEmpty: 'Todavía no hay nada que publicar: el casebook se rellena cuando rea abre un binario.',
+  artifactUnavailable: 'La herramienta Artifact no está disponible en esta sesión. Usa /casebook export para escribir el casebook en Markdown.',
+  artifactPublished: (url) => `Casebook publicado: ${url}`,
+  artifactFailed: (reason) => `No se ha podido publicar el casebook: ${reason}`,
+  artifactDelegated: 'Le he pedido a Claude que publique el casebook como artifact. Aprueba la llamada a Artifact si Claude Code te lo pregunta.',
+  artifactDescription: (target) => `El casebook de rea de ${target}: hallazgos con la evidencia que citan, preguntas abiertas y todos los registros de evidencia.`,
+  usage: 'Uso: /casebook, /casebook export [archivo] o /casebook artifact',
+  htmlTitle: (target) => `Casebook ${target}`,
+  htmlIntro: 'Lo que rea entregó al agente en una sesión de Claude Code. Cada hallazgo cita evidence_id que rea devolvió en esa sesión; cualquiera de ellos se puede comprobar con rea.',
+  htmlFooter: (version) => `Exportado por rea-casebook ${version}.`,
   markdownTitle: (target) => `Casebook: ${target}`,
   markdownTarget: 'Objetivo',
   markdownFindings: 'Hallazgos',

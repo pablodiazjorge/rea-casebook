@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { words } from '../hooks/messages'
 import { closeBinary, inputError, openBinary, pseudoCode, recordUnknown, searchStrings } from './fixtures/rea'
-import { command, finding, PANE, PANE_PROPS, rea, SESSION, until, world } from './world'
+import { ARTIFACT_URL, command, finding, JOURNAL, PAGE, PANE, PANE_PROPS, rea, SESSION, until, world } from './world'
 
 const idOf = (text: string) => String((JSON.parse(text) as { evidence_id: string }).evidence_id)
 const mutationOf = (text: string) => String((JSON.parse(text) as { result: { mutation_evidence_ids: string[] } }).result.mutation_evidence_ids[0])
@@ -37,7 +37,7 @@ describe('rea-casebook', () => {
     // A mark per confidence, and no authority word when it is the binary itself.
     expect(await pane.find({ type: 'Text', text: '● ' })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: ' - shipped-artifact' })).toBeUndefined()
-    expect(await pane.find({ type: 'Text', text: 'rea-casebook v0.1.3' })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: 'rea-casebook v0.2.0' })).toBeDefined()
     // Contrast: every Text names a theme color and none is dimmed, so the words follow light and
     // dark themes alike; uncolored or dimmed text came out light gray on a light terminal.
     const texts = await pane.findAll({ type: 'Text' })
@@ -193,5 +193,77 @@ describe('rea-casebook in Spanish', () => {
     expect(await pane.find({ type: 'Text', text: words('es').refused(1) })).toBeDefined()
     await pane.unmount()
     expect((await $.command.run(command())).text).toBe('Panel del casebook abierto.')
+  })
+})
+
+describe('rea-casebook journal and artifact', () => {
+  const PAGE_PATH = 'D:\\home\\tester\\.rea-casebook\\2026-10-12\\sess-1.html'
+
+  test('keeps a journal of the session in the home folder, and none before rea is used', async ($, on) => {
+    const w = world(on)
+    w.rea = { open_binary: { text: openBinary }, search_strings: { text: searchStrings } }
+    await $.session.start(SESSION)
+    await $.command.run(command())
+    expect(w.files.size).toBe(0)
+
+    await $.tool.call(rea('open_binary', { path: 'D:\\cases\\target.exe' }))
+    await $.tool.call(rea('search_strings', { pattern: 'ACCESS' }))
+    await $.tool.call(finding({ claim: 'The success message is "ACCESS GRANTED".', evidence_ids: [idOf(searchStrings)], confidence: 'observed' }))
+    await until(w.clock, () => (w.files.get(JOURNAL) ?? '').includes('"type":"finding"'))
+
+    const lines = (w.files.get(JOURNAL) ?? '').trim().split('\n').map((line) => JSON.parse(line) as Record<string, unknown>)
+    expect(lines.map((line) => line.type)).toEqual(['casebook', 'target', 'evidence', 'finding'])
+    expect(lines[0]).toMatchObject({ version: '0.2.0', session: 'sess-1', refused: 0, artifactUrl: null })
+    // Nothing lands in the project: the journal is the only file written.
+    expect([...w.files.keys()]).toEqual([JOURNAL])
+  })
+
+  test('/casebook artifact publishes the page itself when Artifact is allowed, then updates the same artifact', async ($, on) => {
+    const w = world(on)
+    w.available = ['Artifact']
+    w.rea = { open_binary: { text: openBinary }, search_strings: { text: searchStrings } }
+    await $.session.start(SESSION)
+    await $.tool.call(rea('open_binary', { path: 'D:\\cases\\target.exe' }))
+    await $.tool.call(rea('search_strings', { pattern: 'ACCESS' }))
+
+    expect((await $.command.run(command('artifact'))).text).toBe(words('en').artifactPublished(ARTIFACT_URL))
+    expect(w.artifactCalls[0]).toMatchObject({ action: 'publish', file_path: PAGE_PATH, icon: 'search' })
+    expect(w.files.get(PAGE)).toContain('<title>Casebook target.exe</title>')
+
+    await $.command.run(command('artifact'))
+    expect(w.artifactCalls[1]).toMatchObject({ action: 'publish', file_path: PAGE_PATH, url: ARTIFACT_URL })
+    expect(w.artifactCalls[1]).not.toHaveProperty('icon')
+    expect(w.prompts).toEqual([])
+  })
+
+  test('without permission for Artifact, it asks Claude in a visible turn and keeps the URL Claude gets', async ($, on) => {
+    const w = world(on)
+    w.available = ['Artifact']
+    w.artifactVerdict = 'ask'
+    w.rea = { open_binary: { text: openBinary } }
+    await $.session.start(SESSION)
+    await $.tool.call(rea('open_binary', { path: 'D:\\cases\\target.exe' }))
+
+    expect((await $.command.run(command('artifact'))).text).toBe(words('en').artifactDelegated)
+    await until(w.clock, () => w.prompts.length === 1)
+    expect(w.prompts[0]).toContain('[rea-casebook] The user ran /casebook artifact.')
+    expect(w.prompts[0]).toContain(PAGE_PATH)
+    expect(w.artifactCalls).toEqual([])
+
+    // Claude publishes the page; the mod keeps the URL, and the next publish updates that artifact.
+    w.artifactVerdict = 'allow'
+    await $.tool.call({ tool: 'Artifact', tool_use_id: 'toolu_artifact', action: 'publish', file_path: PAGE_PATH, icon: 'search' } as never)
+    await $.command.run(command('artifact'))
+    expect(w.artifactCalls[1]).toMatchObject({ url: ARTIFACT_URL })
+  })
+
+  test('says when there is nothing to publish, or no Artifact tool in the session', async ($, on) => {
+    const w = world(on)
+    w.rea = { open_binary: { text: openBinary } }
+    await $.session.start(SESSION)
+    expect((await $.command.run(command('artifact'))).text).toBe(words('en').artifactEmpty)
+    await $.tool.call(rea('open_binary', { path: 'D:\\cases\\target.exe' }))
+    expect((await $.command.run(command('artifact'))).text).toBe(words('en').artifactUnavailable)
+    expect((await $.command.run(command('artifact now'))).text).toBe(words('en').usage)
   })
 })
