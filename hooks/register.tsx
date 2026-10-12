@@ -19,7 +19,7 @@ import { caseToMarkdown } from './markdown'
 import { clip, formatSeconds, type Lang, langOf, words } from './messages'
 
 const PANE = 'rea-casebook'
-const VERSION = '0.2.0'
+const VERSION = '1.0.0'
 const REA = /^mcp__rea__/u
 const FINDING_TOOL = 'mcp__rea-casebook__record_finding'
 const TIMELINE_MAX = 40
