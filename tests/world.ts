@@ -38,11 +38,17 @@ export type World = {
   rea: Record<string, ReaAnswer>
 }
 
+/**
+ * A path as the world keys it. The engine hands paths over with the system's slashes and, off
+ * Windows, makes a drive path relative (`/home/runner/…/D:\cases`): keep what starts at the drive letter.
+ */
+export const pathKey = (path: string) => path.replace(/\\/gu, '/').replace(/^.*?(?=[A-Za-z]:\/)/u, '')
+
 export function world(on: On, files: Record<string, string> = {}): World {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.UTC(2026, 9, 12, 10, 0) })
-  const w: World = { clock, files: new Map(Object.entries(files)), opened: [], tools: [], commands: [], rea: {} }
+  const w: World = { clock, files: new Map(Object.entries(files).map(([path, text]) => [pathKey(path), text])), opened: [], tools: [], commands: [], rea: {} }
 
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('tool.register', ($, e) => {
@@ -58,12 +64,12 @@ export function world(on: On, files: Record<string, string> = {}): World {
     return { value: { isPlaced: true } as never }
   })
   on('fs.read', ($, e) => {
-    const text = w.files.get(e.path)
+    const text = w.files.get(pathKey(e.path))
     if (text === undefined) throw new Error(`ENOENT: ${e.path}`)
     return { value: text }
   })
   on('fs.write', ($, e) => {
-    w.files.set(e.path, e.text)
+    w.files.set(pathKey(e.path), e.text)
     return { value: undefined }
   })
   on('tool.check', () => ({ decision: 'allow' }))
