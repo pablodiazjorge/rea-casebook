@@ -32,7 +32,7 @@ describe('the journal', () => {
     expect(hasCase({ ...EMPTY_CASE, target: { path: 'a.exe', sha256: '', format: 'pe', architecture: 'x86' } })).toBe(true)
   })
 
-  test('holds a header, the target with its full path, then what happened in order', () => {
+  test('holds a header, the target by file name and hash, then what happened in order', () => {
     const state: CaseState = {
       ...EMPTY_CASE,
       startedAt: AT,
@@ -45,6 +45,8 @@ describe('the journal', () => {
     const lines = journalLines(state, 'sess-1', '0.2.0').trim().split('\n').map((line) => JSON.parse(line) as Record<string, unknown>)
     expect(lines.map((line) => line.type)).toEqual(['casebook', 'target', 'finding', 'evidence', 'unknown'])
     expect(lines[0]).toEqual({ type: 'casebook', version: '0.2.0', session: 'sess-1', startedAt: AT, coldStartMs: 17_000, refused: 0, artifactUrl: null })
-    expect(lines[1]).toMatchObject({ path: 'D:\\cases\\target.exe' })
+    // The local path never reaches the journal: it can hold the person's user name.
+    expect(lines[1]).toEqual({ type: 'target', name: 'target.exe', sha256: 'c'.repeat(64), format: 'pe', architecture: 'x86_64' })
+    expect(JSON.stringify(lines)).not.toContain('D:\\\\cases')
   })
 })

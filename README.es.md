@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude_Code-%E2%89%A5_2.1.296-D97757?logo=claude&logoColor=fff" alt="Claude Code 2.1.296 o posterior">
-  <img src="https://img.shields.io/badge/versi%C3%B3n-1.0.1-blue" alt="Versión">
+  <img src="https://img.shields.io/badge/versi%C3%B3n-1.0.2-blue" alt="Versión">
   <img src="https://img.shields.io/badge/tipo-mod-6f42c1" alt="Mod de Claude Code">
   <img src="https://img.shields.io/badge/licencia-MIT-green" alt="Licencia">
 </p>
@@ -51,7 +51,7 @@ Los identificadores de la evidencia de mutación que devuelven `record_unknown` 
 2. Cuando un resultado es demasiado grande para el cliente y se guarda en un archivo, el mod lee la evidencia de ese archivo.
 3. El mod nunca llama a rea por su cuenta. Todo lo que muestra es lo que el agente ya recibió.
 4. El estado vive en la sesión (`$.state`) y lo dibuja el panel. Un segundo `open_binary` conserva la evidencia del primero, así que al comparar dos compilaciones se mantienen las dos.
-5. Cada cambio reescribe el diario de la sesión, `~/.rea-casebook/<fecha>/<sesión>.jsonl`: una línea para la sesión y sus contadores, otra para el objetivo con su ruta local completa y una por cada registro de evidencia, pregunta y hallazgo, en el orden en que ocurrieron. El diario se queda en tu carpeta personal; solo `/casebook export` y `/casebook artifact` sacan el expediente de ahí.
+5. Cada cambio reescribe el diario de la sesión, `~/.rea-casebook/<fecha>/<sesión>.jsonl`: una línea para la sesión y sus contadores, otra para el objetivo con su nombre de archivo y su SHA-256 (nunca su ruta local) y una por cada registro de evidencia, pregunta y hallazgo, en el orden en que ocurrieron. El diario se queda en tu carpeta personal; solo `/casebook export` y `/casebook artifact` sacan el expediente de ahí.
 
 ## El comando
 

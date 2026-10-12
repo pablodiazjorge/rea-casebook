@@ -43,8 +43,8 @@ export const hasCase = (state: CaseState) => state.target !== null || state.evid
 
 /**
  * The journal's lines: a header with the session and its counters, the target, then the Evidence,
- * unknowns and findings in the order they happened. The target keeps its full local path: the
- * journal stays in the person's home; only exports drop it.
+ * unknowns and findings in the order they happened. The target is named by its file name and
+ * SHA-256, never by its local path, which can hold the person's user name.
  */
 export function journalLines(state: CaseState, sessionId: string, version: string): string {
   const header = {
@@ -61,6 +61,9 @@ export function journalLines(state: CaseState, sessionId: string, version: strin
     ...state.unknowns.map((unknown) => ({ type: 'unknown', ...unknown })),
     ...state.findings.map((finding) => ({ type: 'finding', ...finding })),
   ].sort((left, right) => left.at - right.at)
-  const lines = [header, ...(state.target ? [{ type: 'target', ...state.target }] : []), ...events]
+  const target = state.target
+    ? [{ type: 'target', name: state.target.path.split(/[\\/]/u).pop() ?? '', sha256: state.target.sha256, format: state.target.format, architecture: state.target.architecture }]
+    : []
+  const lines = [header, ...target, ...events]
   return `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`
 }

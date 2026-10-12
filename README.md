@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude_Code-%E2%89%A5_2.1.296-D97757?logo=claude&logoColor=fff" alt="Claude Code 2.1.296 or newer">
-  <img src="https://img.shields.io/badge/version-1.0.1-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.0.2-blue" alt="Version">
   <img src="https://img.shields.io/badge/type-mod-6f42c1" alt="Claude Code mod">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
@@ -51,7 +51,7 @@ The ids of the mutation Evidence that `record_unknown` and `update_unknown` retu
 2. When a result is too large for the client and is saved to a file, the mod reads the Evidence from that file.
 3. The mod never calls rea on its own. Everything it shows is what the agent already received.
 4. The state lives in the session (`$.state`) and is drawn by the pane. A second `open_binary` keeps the Evidence of the first, so comparing two builds keeps both.
-5. Each change rewrites the session's journal, `~/.rea-casebook/<date>/<session>.jsonl`: a line for the session and its counters, one for the target with its full local path, and one per Evidence record, unknown and finding, in the order they happened. The journal stays in your home folder; only `/casebook export` and `/casebook artifact` take the casebook anywhere else.
+5. Each change rewrites the session's journal, `~/.rea-casebook/<date>/<session>.jsonl`: a line for the session and its counters, one for the target with its file name and SHA-256 (never its local path), and one per Evidence record, unknown and finding, in the order they happened. The journal stays in your home folder; only `/casebook export` and `/casebook artifact` take the casebook anywhere else.
 
 ## The command
 
