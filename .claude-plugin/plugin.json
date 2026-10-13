@@ -1,7 +1,7 @@
 {
   "name": "rea-casebook",
   "displayName": "rea-casebook",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A live casebook of the Evidence rea gives the agent while it reverse engineers a binary: Ghidra's cold start, findings that must cite real evidence_id values, a session journal and Markdown or artifact exports.",
   "author": { "name": "pablodiazjorge" },
   "homepage": "https://github.com/pablodiazjorge/rea-casebook",

@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude_Code-%E2%89%A5_2.1.296-D97757?logo=claude&logoColor=fff" alt="Claude Code 2.1.296 o posterior">
-  <img src="https://img.shields.io/badge/versi%C3%B3n-1.0.2-blue" alt="Versión">
+  <img src="https://img.shields.io/badge/versi%C3%B3n-1.0.3-blue" alt="Versión">
   <img src="https://img.shields.io/badge/tipo-mod-6f42c1" alt="Mod de Claude Code">
   <img src="https://img.shields.io/badge/licencia-MIT-green" alt="Licencia">
 </p>
@@ -60,11 +60,11 @@ Los identificadores de la evidencia de mutación que devuelven `record_unknown` 
 | `/casebook` | Abre el panel |
 | `/casebook export` | Escribe el expediente en Markdown en `casebook-<objetivo>.md`, en la carpeta de la sesión |
 | `/casebook export <archivo>` | Lo escribe en ese archivo, siempre como `.md` |
-| `/casebook artifact` | Publica el expediente como artifact privado de claude.ai; las siguientes veces actualiza el mismo artifact |
+| `/casebook artifact` | Escribe el expediente como página y te da la petición para que Claude lo publique como artifact privado de claude.ai; una vez publicado, la petición nombra el mismo artifact |
 
 La exportación incluye el objetivo (nombre, formato, arquitectura y SHA-256), el arranque en frío, los hallazgos con su evidencia, confianza y autoridad, las preguntas abiertas y la lista de evidencia. Nombra el archivo, nunca su ruta local.
 
-El artifact es una página con las mismas secciones, con tema claro y oscuro y cada `evidence_id` completo. El mod la escribe junto al diario y la publica él mismo con la herramienta Artifact cuando tus permisos ya permiten esa herramienta; si no, le pide a Claude que la publique en un turno visible, donde decides como en cualquier otra llamada. Necesita una sesión que ofrezca la herramienta Artifact, como la app de escritorio de Claude; en otra, el comando lo indica y remite a `/casebook export`.
+El artifact es una página con las mismas secciones, con tema claro y oscuro y cada `evidence_id` completo. El mod la escribe junto al diario y responde con una petición para que se la des a Claude, como `Publica <página> con la herramienta Artifact como artifact privado nuevo …`. Claude la publica entonces en un turno visible, donde decides como en cualquier otra llamada. Cuando Claude ya la ha publicado, la siguiente petición nombra ese artifact, así que se actualiza en el mismo sitio. Para publicarla hace falta una sesión que ofrezca la herramienta Artifact, como la app de escritorio de Claude.
 
 ## Idioma
 
@@ -86,7 +86,7 @@ Cuando Claude publica el artifact por ti, antes lee la página que el mod escrib
 }
 ```
 
-El mod escribe archivos a través del motor, sin pasar por tus reglas: el diario en `~/.rea-casebook/` tras cada cambio, la página del artifact a su lado y el archivo que indiques a `/casebook export` cuando lo ejecutas. `/casebook artifact` llama a la herramienta Artifact por su cuenta solo si tus reglas ya la permiten sin preguntar; si no, la llamada la hace Claude y se aplican tus reglas.
+El mod escribe archivos a través del motor, sin pasar por tus reglas: el diario en `~/.rea-casebook/` tras cada cambio, la página del artifact a su lado y el archivo que indiques a `/casebook export` cuando lo ejecutas. `/casebook artifact` nunca publica por su cuenta: la llamada a Artifact la hace Claude cuando se lo pides, y se aplican tus reglas.
 
 ## Qué ejecuta, escribe y envía
 
@@ -104,9 +104,9 @@ Todo lo que el mod hace por su cuenta, para quien quiera revisarlo antes de inst
 
   No escribe configuración, scripts ni instrucciones.
 - **Qué lee.** Los resultados de las llamadas a rea que el agente ya hizo, un resultado de rea que el cliente guardó en un archivo por ser demasiado grande y la variable de entorno `USERPROFILE` o `HOME`, solo para encontrar tu carpeta personal. No lee credenciales.
-- **La herramienta que llama por su cuenta.** Solo `Artifact`, solo cuando ejecutas `/casebook artifact` y solo si tus reglas ya la permiten sin preguntar. Publica la página del expediente en tu propia cuenta de claude.ai como artifact privado. Nunca llama a rea ni a ninguna otra herramienta.
-- **El prompt que envía.** Solo después de `/casebook artifact`, cuando tus reglas no permiten la llamada a Artifact: un mensaje marcado con `[rea-casebook]` que pide a Claude que publique la página, con su ruta y, en las siguientes veces, la URL del artifact. No lleva nada más de la conversación.
-- **Red.** Ninguna propia. Lo único que sale de tu equipo es la página del artifact que decides publicar, a través de la herramienta Artifact de Claude Code.
+- **Herramientas que llama por su cuenta.** Ninguna. Nunca llama a rea, a Artifact ni a ninguna otra herramienta; `record_finding` la llama el modelo.
+- **Prompts que envía.** Ninguno. `/casebook artifact` te muestra una petición para Claude, pero no la envía.
+- **Red.** Ninguna. Lo único que sale de tu equipo es la página del artifact que pides a Claude que publique, a través de la herramienta Artifact de Claude Code.
 
 [PRIVACY.md](PRIVACY.md) lo resume como aviso de privacidad (en inglés).
 
@@ -150,7 +150,7 @@ claude --plugin-dir .
 
 ## Estado
 
-Versión 1.0: el panel, los hallazgos que tienen que citar evidencia real, el diario de la sesión y las exportaciones a Markdown y a artifact, probados en Ubuntu, macOS y Windows y usados en sesiones reales con rea 6.4.0. El diseño está documentado en [rea-lab](https://github.com/pablodiazjorge/rea-lab) (ADR 0015 a 0017).
+Versión 1.0: el panel, los hallazgos que tienen que citar evidencia real, el diario de la sesión y las exportaciones a Markdown y a artifact, probados en Ubuntu, macOS y Windows y usados en sesiones reales con rea 6.4.0. Desde la 1.0.3, el mod no llama a ninguna herramienta ni envía prompts por su cuenta: `/casebook artifact` escribe la página y eres tú quien le pide a Claude que la publique. El diseño está documentado en [rea-lab](https://github.com/pablodiazjorge/rea-lab) (ADR 0015 a 0017).
 
 ## Licencia
 

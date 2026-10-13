@@ -37,7 +37,7 @@ describe('rea-casebook', () => {
     // A mark per confidence, and no authority word when it is the binary itself.
     expect(await pane.find({ type: 'Text', text: '● ' })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: ' - shipped-artifact' })).toBeUndefined()
-    expect(await pane.find({ type: 'Text', text: 'rea-casebook v1.0.2' })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: 'rea-casebook v1.0.3' })).toBeDefined()
     // Contrast: every Text names a theme color and none is dimmed, so the words follow light and
     // dark themes alike; uncolored or dimmed text came out light gray on a light terminal.
     const texts = await pane.findAll({ type: 'Text' })
@@ -217,57 +217,52 @@ describe('rea-casebook journal and artifact', () => {
 
     const lines = (w.files.get(JOURNAL) ?? '').trim().split('\n').map((line) => JSON.parse(line) as Record<string, unknown>)
     expect(lines.map((line) => line.type)).toEqual(['casebook', 'target', 'evidence', 'finding'])
-    expect(lines[0]).toMatchObject({ version: '1.0.2', session: 'sess-1', refused: 0, artifactUrl: null })
+    expect(lines[0]).toMatchObject({ version: '1.0.3', session: 'sess-1', refused: 0, artifactUrl: null })
     // Nothing lands in the project: the journal is the only file written.
     expect([...w.files.keys()]).toEqual([JOURNAL])
   })
 
-  test('/casebook artifact publishes the page itself when Artifact is allowed, then updates the same artifact', async ($, on) => {
+  test('/casebook artifact writes the page and gives the request for Claude, without calling a tool or submitting a prompt', async ($, on) => {
     const w = world(on)
-    w.available = ['Artifact']
     w.rea = { open_binary: { text: openBinary }, search_strings: { text: searchStrings } }
     await $.session.start(SESSION)
     await $.tool.call(rea('open_binary', { path: 'D:\\cases\\target.exe' }))
     await $.tool.call(rea('search_strings', { pattern: 'ACCESS' }))
 
-    expect((await $.command.run(command('artifact'))).text).toBe(words('en').artifactPublished(ARTIFACT_URL))
-    expect(w.artifactCalls[0]).toMatchObject({ action: 'publish', file_path: PAGE_PATH, icon: 'search' })
+    const t = words('en')
+    const request = t.artifactRequest(PAGE_PATH, null, t.artifactDescription('target.exe'))
+    expect((await $.command.run(command('artifact'))).text).toBe(t.artifactWritten(PAGE_PATH, request))
+    expect(request).toContain('as a new private artifact with the icon "search"')
     expect(w.files.get(PAGE)).toContain('<title>Casebook target.exe</title>')
-
-    await $.command.run(command('artifact'))
-    expect(w.artifactCalls[1]).toMatchObject({ action: 'publish', file_path: PAGE_PATH, url: ARTIFACT_URL })
-    expect(w.artifactCalls[1]).not.toHaveProperty('icon')
+    await w.clock.advance(1000)
+    expect(w.artifactCalls).toEqual([])
     expect(w.prompts).toEqual([])
   })
 
-  test('without permission for Artifact, it asks Claude in a visible turn and keeps the URL Claude gets', async ($, on) => {
+  test('keeps the URL when Claude publishes the page, so the next request names the same artifact', async ($, on) => {
     const w = world(on)
-    w.available = ['Artifact']
-    w.artifactVerdict = 'ask'
     w.rea = { open_binary: { text: openBinary } }
     await $.session.start(SESSION)
     await $.tool.call(rea('open_binary', { path: 'D:\\cases\\target.exe' }))
-
-    expect((await $.command.run(command('artifact'))).text).toBe(words('en').artifactDelegated)
-    await until(w.clock, () => w.prompts.length === 1)
-    expect(w.prompts[0]).toContain('[rea-casebook] The user ran /casebook artifact.')
-    expect(w.prompts[0]).toContain(PAGE_PATH)
-    expect(w.artifactCalls).toEqual([])
-
-    // Claude publishes the page; the mod keeps the URL, and the next publish updates that artifact.
-    w.artifactVerdict = 'allow'
-    await $.tool.call({ tool: 'Artifact', tool_use_id: 'toolu_artifact', action: 'publish', file_path: PAGE_PATH, icon: 'search' } as never)
     await $.command.run(command('artifact'))
-    expect(w.artifactCalls[1]).toMatchObject({ url: ARTIFACT_URL })
+
+    // The person asks Claude, and Claude publishes the page; the mod only reads the result.
+    const published = await $.tool.call({ tool: 'Artifact', tool_use_id: 'toolu_artifact', action: 'publish', file_path: PAGE_PATH, icon: 'search' } as never)
+    expect(published.text).toBe(`Published ${ARTIFACT_URL}`)
+
+    const t = words('en')
+    const next = t.artifactRequest(PAGE_PATH, ARTIFACT_URL, t.artifactDescription('target.exe'))
+    expect((await $.command.run(command('artifact'))).text).toBe(t.artifactWritten(PAGE_PATH, next))
+    expect(next).toContain(`to my existing artifact ${ARTIFACT_URL}`)
+    expect(w.artifactCalls).toHaveLength(1)
+    expect(w.prompts).toEqual([])
   })
 
-  test('says when there is nothing to publish, or no Artifact tool in the session', async ($, on) => {
+  test('says when there is nothing to publish yet, and how to use the command', async ($, on) => {
     const w = world(on)
     w.rea = { open_binary: { text: openBinary } }
     await $.session.start(SESSION)
     expect((await $.command.run(command('artifact'))).text).toBe(words('en').artifactEmpty)
-    await $.tool.call(rea('open_binary', { path: 'D:\\cases\\target.exe' }))
-    expect((await $.command.run(command('artifact'))).text).toBe(words('en').artifactUnavailable)
     expect((await $.command.run(command('artifact now'))).text).toBe(words('en').usage)
   })
 })

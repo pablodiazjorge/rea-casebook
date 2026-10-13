@@ -42,13 +42,9 @@ export type World = {
   commands: string[]
   /** The rea answers by tool name (without mcp__rea__); a test may change them. */
   rea: Record<string, ReaAnswer>
-  /** The tools `$.tool.list` reports beside rea's; Artifact only when a test adds it. */
-  available: string[]
-  /** What the person's permissions decide for Artifact. */
-  artifactVerdict: 'allow' | 'ask' | 'deny'
-  /** Every Artifact call, as the tool received it. */
+  /** Every Artifact call, as the tool received it: the tests check that only Claude makes them. */
   artifactCalls: Record<string, unknown>[]
-  /** The prompts submitted to Claude. */
+  /** The prompts submitted to Claude: the tests check that the mod submits none. */
   prompts: string[]
 }
 
@@ -69,8 +65,6 @@ export function world(on: On, files: Record<string, string> = {}): World {
     tools: [],
     commands: [],
     rea: {},
-    available: [],
-    artifactVerdict: 'allow',
     artifactCalls: [],
     prompts: [],
   }
@@ -81,7 +75,6 @@ export function world(on: On, files: Record<string, string> = {}): World {
     w.tools.push({ name: e.name, isDeferred: e.isDeferred })
     return { value: { tool: `mcp__rea-casebook__${e.name}` } }
   })
-  on('tool.list', () => ({ value: w.available.map((name) => ({ name, description: '', mcp: false })) }))
   on('command.register', ($, e) => {
     w.commands.push(e.name)
     return { value: { command: e.name } }
@@ -103,7 +96,6 @@ export function world(on: On, files: Record<string, string> = {}): World {
     w.prompts.push(e.text)
     return { text: e.text }
   })
-  on('tool.check', ($, e) => ({ decision: e.tool === 'Artifact' ? w.artifactVerdict : 'allow' }))
   // Beneath the mod: the Artifact tool and the rea MCP server.
   on('tool.call', async ($, e) => {
     const tool = String(e.tool)
