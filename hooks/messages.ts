@@ -48,8 +48,8 @@ type Words = {
   opened: string
   exported: (path: string) => string
   exportFailed: (path: string) => string
-  exportRefused: (path: string) => string
-  artifactEmpty: string
+  /** Before rea opens a binary: nothing to export or publish yet. */
+  caseEmpty: string
   /** The page is written; the person gives Claude the request to publish it. */
   artifactWritten: (page: string, request: string) => string
   /** What to ask Claude: a new private artifact, or an update of the one already published. */
@@ -71,7 +71,7 @@ type Words = {
 
 const EN = {
   name: 'Casebook',
-  command: 'Show the rea casebook pane; "/casebook export [file]" writes it as Markdown, "/casebook artifact" writes a page to publish as an artifact',
+  command: 'Show the rea casebook pane; "/casebook export" writes it as Markdown and "/casebook artifact" writes a page to publish as an artifact, both under ~/.rea-casebook/',
   noTarget: 'No binary open yet. The pane fills in as rea delivers Evidence.',
   target: (name, format, architecture) => `${name} - ${format} ${architecture}`,
   ghidraWaiting: (tool, elapsed) => `Waiting for ${tool}: ${elapsed} (the first Ghidra query imports and analyses the target)`,
@@ -96,15 +96,14 @@ const EN = {
   opened: 'Casebook pane opened.',
   exported: (path) => `Casebook exported to ${path}.`,
   exportFailed: (path) => `Could not write ${path}.`,
-  exportRefused: (path) => `Not written: ${path} is a file coding agents read as instructions or settings. Choose another name.`,
-  artifactEmpty: 'Nothing to publish yet: the casebook fills in once rea opens a binary.',
+  caseEmpty: 'Nothing to write yet: the casebook fills in once rea opens a binary.',
   artifactWritten: (page, request) => `Casebook page written to ${page}. To publish it as an artifact, ask Claude:\n${request}`,
   artifactRequest: (page, url, description) =>
     url
       ? `Publish ${page} with the Artifact tool to my existing artifact ${url}, without changing its content.`
       : `Publish ${page} with the Artifact tool as a new private artifact with the icon "search" and the description "${description}", without changing its content.`,
   artifactDescription: (target) => `The rea casebook of ${target}: findings with the Evidence they cite, open unknowns and every Evidence record.`,
-  usage: 'Usage: /casebook, /casebook export [file] or /casebook artifact',
+  usage: 'Usage: /casebook, /casebook export or /casebook artifact',
   htmlTitle: (target) => `Casebook ${target}`,
   htmlIntro: 'What rea delivered to the agent in one Claude Code session. Every finding cites evidence_id values that rea returned in that session; any of them can be checked with rea.',
   htmlFooter: (version) => `Exported by rea-casebook ${version}.`,
@@ -120,7 +119,7 @@ const EN = {
 
 const ES = {
   name: 'Casebook',
-  command: 'Muestra el panel del casebook de rea; "/casebook export [archivo]" lo escribe en Markdown y "/casebook artifact" escribe una página para publicarlo como artifact',
+  command: 'Muestra el panel del casebook de rea; "/casebook export" lo escribe en Markdown y "/casebook artifact" escribe una página para publicarlo como artifact, los dos en ~/.rea-casebook/',
   noTarget: 'Todavía no hay ningún binario abierto. El panel se rellena a medida que rea entrega evidencia.',
   target: (name, format, architecture) => `${name} - ${format} ${architecture}`,
   ghidraWaiting: (tool, elapsed) => `Esperando a ${tool}: ${elapsed} (la primera consulta a Ghidra importa y analiza el objetivo)`,
@@ -145,15 +144,14 @@ const ES = {
   opened: 'Panel del casebook abierto.',
   exported: (path) => `Casebook exportado a ${path}.`,
   exportFailed: (path) => `No se ha podido escribir ${path}.`,
-  exportRefused: (path) => `No escrito: ${path} es un archivo que los agentes de programación leen como instrucciones o configuración. Elige otro nombre.`,
-  artifactEmpty: 'Todavía no hay nada que publicar: el casebook se rellena cuando rea abre un binario.',
+  caseEmpty: 'Todavía no hay nada que escribir: el casebook se rellena cuando rea abre un binario.',
   artifactWritten: (page, request) => `Página del casebook escrita en ${page}. Para publicarla como artifact, pídele a Claude:\n${request}`,
   artifactRequest: (page, url, description) =>
     url
       ? `Publica ${page} con la herramienta Artifact en mi artifact ${url}, sin cambiar su contenido.`
       : `Publica ${page} con la herramienta Artifact como artifact privado nuevo, con el icono "search" y la descripción "${description}", sin cambiar su contenido.`,
   artifactDescription: (target) => `El casebook de rea de ${target}: hallazgos con la evidencia que citan, preguntas abiertas y todos los registros de evidencia.`,
-  usage: 'Uso: /casebook, /casebook export [archivo] o /casebook artifact',
+  usage: 'Uso: /casebook, /casebook export o /casebook artifact',
   htmlTitle: (target) => `Casebook ${target}`,
   htmlIntro: 'Lo que rea entregó al agente en una sesión de Claude Code. Cada hallazgo cita evidence_id que rea devolvió en esa sesión; cualquiera de ellos se puede comprobar con rea.',
   htmlFooter: (version) => `Exportado por rea-casebook ${version}.`,

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { words } from '../hooks/messages'
 import { closeBinary, inputError, openBinary, pseudoCode, recordUnknown, searchStrings } from './fixtures/rea'
-import { ARTIFACT_URL, command, finding, JOURNAL, PAGE, PANE, PANE_PROPS, rea, SESSION, until, world } from './world'
+import { ARTIFACT_URL, CASEBOOK_FOLDER, command, finding, JOURNAL, MARKDOWN, PAGE, PANE, PANE_PROPS, rea, SESSION, until, world } from './world'
 
 const idOf = (text: string) => String((JSON.parse(text) as { evidence_id: string }).evidence_id)
 const mutationOf = (text: string) => String((JSON.parse(text) as { result: { mutation_evidence_ids: string[] } }).result.mutation_evidence_ids[0])
@@ -37,7 +37,7 @@ describe('rea-casebook', () => {
     // A mark per confidence, and no authority word when it is the binary itself.
     expect(await pane.find({ type: 'Text', text: '● ' })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: ' - shipped-artifact' })).toBeUndefined()
-    expect(await pane.find({ type: 'Text', text: 'rea-casebook v1.0.3' })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: 'rea-casebook v1.0.4' })).toBeDefined()
     // Contrast: every Text names a theme color and none is dimmed, so the words follow light and
     // dark themes alike; uncolored or dimmed text came out light gray on a light terminal.
     const texts = await pane.findAll({ type: 'Text' })
@@ -161,22 +161,20 @@ describe('rea-casebook', () => {
     await $.tool.call(finding({ claim: 'The success message is "ACCESS GRANTED".', evidence_ids: [idOf(searchStrings)], confidence: 'observed' }))
 
     expect((await $.command.run(command())).text).toBe('Casebook pane opened.')
-    expect((await $.command.run(command('export'))).text).toBe('Casebook exported to casebook-target.exe.md.')
-    // The engine resolves a relative path against the session's folder before writing.
-    const written = (name: string) => [...w.files].find(([path]) => path.replace(/\\/gu, '/').endsWith(name))?.[1]
-    const markdown = written('/casebook-target.exe.md') ?? ''
+    // The export goes beside the journal, in the home folder, never into the project.
+    expect((await $.command.run(command('export'))).text).toBe('Casebook exported to D:\\home\\tester\\.rea-casebook\\2026-10-12\\sess-1.md.')
+    const markdown = w.files.get(MARKDOWN) ?? ''
     expect(markdown).toContain('# Casebook: target.exe')
     expect(markdown).toContain('| F1 | The success message is "ACCESS GRANTED". | `ev_f5061e3dcffd337c` | observed | shipped-artifact |')
-    // The export names the file, never the local path.
+    // The export names the target by its file name, never by its local path.
     expect(markdown).not.toContain('D:\\cases')
 
-    expect((await $.command.run(command('export notes\\case.md'))).text).toBe('Casebook exported to notes\\case.md.')
-    expect(written('/notes/case.md')).toBeDefined()
-    // Never an agent's instructions, and always Markdown.
-    expect((await $.command.run(command('export CLAUDE.md'))).text).toBe(words('en').exportRefused('CLAUDE.md'))
-    expect(written('/CLAUDE.md')).toBeUndefined()
-    expect((await $.command.run(command('export summary'))).text).toBe('Casebook exported to summary.md.')
+    // No path can be named: an argument only shows how to use the command, and nothing else is written.
+    expect((await $.command.run(command('export notes\\case.md'))).text).toBe(words('en').usage)
+    expect((await $.command.run(command('export CLAUDE.md'))).text).toBe(words('en').usage)
     expect((await $.command.run(command('publish'))).text).toBe(words('en').usage)
+    await until(w.clock, () => w.files.has(JOURNAL))
+    expect([...w.files.keys()].filter((path) => !path.startsWith(CASEBOOK_FOLDER))).toEqual([])
   })
 })
 
@@ -217,7 +215,7 @@ describe('rea-casebook journal and artifact', () => {
 
     const lines = (w.files.get(JOURNAL) ?? '').trim().split('\n').map((line) => JSON.parse(line) as Record<string, unknown>)
     expect(lines.map((line) => line.type)).toEqual(['casebook', 'target', 'evidence', 'finding'])
-    expect(lines[0]).toMatchObject({ version: '1.0.3', session: 'sess-1', refused: 0, artifactUrl: null })
+    expect(lines[0]).toMatchObject({ version: '1.0.4', session: 'sess-1', refused: 0, artifactUrl: null })
     // Nothing lands in the project: the journal is the only file written.
     expect([...w.files.keys()]).toEqual([JOURNAL])
   })
@@ -258,11 +256,13 @@ describe('rea-casebook journal and artifact', () => {
     expect(w.prompts).toEqual([])
   })
 
-  test('says when there is nothing to publish yet, and how to use the command', async ($, on) => {
+  test('says when there is nothing to export or publish yet, and how to use the command', async ($, on) => {
     const w = world(on)
     w.rea = { open_binary: { text: openBinary } }
     await $.session.start(SESSION)
-    expect((await $.command.run(command('artifact'))).text).toBe(words('en').artifactEmpty)
+    expect((await $.command.run(command('export'))).text).toBe(words('en').caseEmpty)
+    expect((await $.command.run(command('artifact'))).text).toBe(words('en').caseEmpty)
     expect((await $.command.run(command('artifact now'))).text).toBe(words('en').usage)
+    expect(w.files.size).toBe(0)
   })
 })

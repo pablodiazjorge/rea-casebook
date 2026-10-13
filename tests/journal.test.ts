@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { EMPTY_CASE } from '../hooks/casebook'
-import { casebookBase, dayOf, exportStem, hasCase, journalLines } from '../hooks/journal'
+import { casebookBase, dayOf, hasCase, journalLines } from '../hooks/journal'
 import type { CaseState } from '../types'
 
 const AT = new Date(2026, 9, 12, 23, 30).getTime()
@@ -17,14 +17,6 @@ describe('the journal', () => {
   test('a session id never leaves its folder', () => {
     expect(casebookBase('/home/tester', '../../evil', AT)).toBe('/home/tester/.rea-casebook/2026-10-12/evil')
     expect(casebookBase('/home/tester', '..', AT)).toBe('/home/tester/.rea-casebook/2026-10-12/session')
-  })
-
-  test('the Markdown export is always a .md file and never an agent instructions or settings file', () => {
-    expect(exportStem('', 'c01 compare.exe')).toBe('casebook-c01-compare.exe')
-    expect(exportStem('', null)).toBe('casebook')
-    expect(exportStem('notes\\case.md', null)).toBe('notes\\case')
-    expect(exportStem('report', null)).toBe('report')
-    for (const name of ['CLAUDE.md', 'docs/agents.md', 'GEMINI', '.claude/settings', 'D:\\repo\\.claude\\notes.md']) expect(exportStem(name, null)).toBeNull()
   })
 
   test('is written only once the session has a case', () => {

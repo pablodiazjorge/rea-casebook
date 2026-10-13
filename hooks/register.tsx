@@ -5,8 +5,9 @@
 // It reads rea's results as they pass through `tool.call` (ADR 0015 of rea-lab) and never calls rea
 // on its own, so it needs no permission beyond the person's own rules for rea. It calls no tool and
 // submits no prompt by itself either. Each change rewrites the session's journal under
-// ~/.rea-casebook/ (ADR 0016); `/casebook export` writes the casebook as Markdown, and `/casebook
-// artifact` writes a page that the person asks Claude to publish (ADR 0017).
+// ~/.rea-casebook/ (ADR 0016); `/casebook export` writes the casebook beside it as Markdown, and
+// `/casebook artifact` writes a page beside it that the person asks Claude to publish (ADR 0017).
+// Those three files are all it writes: nothing in the person's project, and no path anyone names.
 
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderInput, ToolCallResult } from 'claude-code'
@@ -15,12 +16,12 @@ import type { CaseState } from '../types'
 import { callEnded, callStarted, EMPTY_CASE, type FindingInput, type FindingOutcome, findingRefused, isQuick, oldestPending, recordFinding } from './casebook'
 import { baseName, readReaResult, type ReaOutcome, savedText } from './evidence'
 import { caseToHtml } from './html'
-import { casebookBase, exportStem, hasCase, journalLines } from './journal'
+import { casebookBase, hasCase, journalLines } from './journal'
 import { caseToMarkdown } from './markdown'
 import { clip, formatSeconds, type Lang, langOf, words } from './messages'
 
 const PANE = 'rea-casebook'
-const VERSION = '1.0.3'
+const VERSION = '1.0.4'
 const REA = /^mcp__rea__/u
 const FINDING_TOOL = 'mcp__rea-casebook__record_finding'
 const TIMELINE_MAX = 40
@@ -101,7 +102,7 @@ async function keepArtifactUrl($: EngineInterface, url: string): Promise<void> {
 async function writeArtifactPage($: EngineInterface): Promise<string> {
   const t = words(lang)
   const state = await read($, casebook)
-  if (!hasCase(state)) return t.artifactEmpty
+  if (!hasCase(state)) return t.caseEmpty
   const base = await sessionBase($, state)
   if (!base) return t.exportFailed('~/.rea-casebook')
   const page = `${base}.html`
@@ -115,17 +116,18 @@ async function writeArtifactPage($: EngineInterface): Promise<string> {
   return t.artifactWritten(page, t.artifactRequest(page, state.artifactUrl, t.artifactDescription(target)))
 }
 
-/** Writes the Markdown export (always a .md file, never an agent's instructions) and answers. */
-async function exportCase($: EngineInterface, requested: string): Promise<string> {
+/** Writes the Markdown export beside the journal, `~/.rea-casebook/<day>/<session>.md`, and answers. */
+async function exportCase($: EngineInterface): Promise<string> {
   const t = words(lang)
   const state = await read($, casebook)
-  const stem = exportStem(requested, state.target ? baseName(state.target.path) : null)
-  if (stem === null) return t.exportRefused(requested)
+  if (!hasCase(state)) return t.caseEmpty
+  const base = await sessionBase($, state)
+  if (!base) return t.exportFailed('~/.rea-casebook')
   try {
-    await $.fs.write(`${stem}.md`, caseToMarkdown(state, lang))
-    return t.exported(`${stem}.md`)
+    await $.fs.write(`${base}.md`, caseToMarkdown(state, lang))
+    return t.exported(`${base}.md`)
   } catch {
-    return t.exportFailed(`${stem}.md`)
+    return t.exportFailed(`${base}.md`)
   }
 }
 
@@ -329,7 +331,7 @@ export const register: Register = (on, options) => {
       await openPane($)
       return { text: t.opened }
     }
-    if (verb === 'export') return { text: await exportCase($, rest.join(' ')) }
+    if (verb === 'export' && rest.length === 0) return { text: await exportCase($) }
     if (verb === 'artifact' && rest.length === 0) return { text: await writeArtifactPage($) }
     return { text: t.usage }
   })

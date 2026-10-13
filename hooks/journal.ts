@@ -15,27 +15,15 @@ export function dayOf(at: number): string {
 }
 
 /**
- * `<home>/.rea-casebook/<day>/<session>`, with the home's own separator. Callers add the extension as
- * fixed text (`.jsonl`, `.html`), so what kind of file the mod writes is visible where it writes it.
+ * `<home>/.rea-casebook/<day>/<session>`, with the home's own separator: every file the mod writes is
+ * this path plus an extension the caller adds as fixed text (`.jsonl`, `.html`, `.md`), so what kind
+ * of file it writes is visible where it writes it. The session id is cut to letters, digits, `_` and
+ * `-`, so the path never leaves its day folder.
  */
 export function casebookBase(home: string, sessionId: string, startedAt: number): string {
   const separator = home.includes('\\') ? '\\' : '/'
   const session = sessionId.replace(/[^\w-]/gu, '').slice(0, 64) || 'session'
   return [home.replace(/[\\/]+$/u, ''), JOURNAL_FOLDER, dayOf(startedAt), session].join(separator)
-}
-
-// Files coding agents read as instructions or settings: an export never overwrites one.
-const AGENT_FILES = /(?:^|[\\/])(?:claude|agents|gemini)\.md$|(?:^|[\\/])\.claude(?:[\\/]|$)/iu
-
-/**
- * The file `/casebook export` writes, without its `.md` extension (the caller adds it as fixed text),
- * or null when the name points at an agent's instructions or settings.
- */
-export function exportStem(requested: string, target: string | null): string | null {
-  const name = target ? target.replace(/[^\w.-]+/gu, '-') : ''
-  const chosen = requested || (name ? `casebook-${name}` : 'casebook')
-  const stem = chosen.replace(/\.md$/iu, '')
-  return AGENT_FILES.test(`${stem}.md`) ? null : stem
 }
 
 /** Whether the session has anything worth a journal: a binary opened or Evidence delivered. */

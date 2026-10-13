@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Claude_Code-%E2%89%A5_2.1.296-D97757?logo=claude&logoColor=fff" alt="Claude Code 2.1.296 o posterior">
-  <img src="https://img.shields.io/badge/versi%C3%B3n-1.0.3-blue" alt="Versión">
+  <img src="https://img.shields.io/badge/versi%C3%B3n-1.0.4-blue" alt="Versión">
   <img src="https://img.shields.io/badge/tipo-mod-6f42c1" alt="Mod de Claude Code">
   <img src="https://img.shields.io/badge/licencia-MIT-green" alt="Licencia">
 </p>
@@ -51,18 +51,17 @@ Los identificadores de la evidencia de mutación que devuelven `record_unknown` 
 2. Cuando un resultado es demasiado grande para el cliente y se guarda en un archivo, el mod lee la evidencia de ese archivo.
 3. El mod nunca llama a rea por su cuenta. Todo lo que muestra es lo que el agente ya recibió.
 4. El estado vive en la sesión (`$.state`) y lo dibuja el panel. Un segundo `open_binary` conserva la evidencia del primero, así que al comparar dos compilaciones se mantienen las dos.
-5. Cada cambio reescribe el diario de la sesión, `~/.rea-casebook/<fecha>/<sesión>.jsonl`: una línea para la sesión y sus contadores, otra para el objetivo con su nombre de archivo y su SHA-256 (nunca su ruta local) y una por cada registro de evidencia, pregunta y hallazgo, en el orden en que ocurrieron. El diario se queda en tu carpeta personal; solo `/casebook export` y `/casebook artifact` sacan el expediente de ahí.
+5. Cada cambio reescribe el diario de la sesión, `~/.rea-casebook/<fecha>/<sesión>.jsonl`: una línea para la sesión y sus contadores, otra para el objetivo con su nombre de archivo y su SHA-256 (nunca su ruta local) y una por cada registro de evidencia, pregunta y hallazgo, en el orden en que ocurrieron. El diario y las dos exportaciones se quedan en esa carpeta; el expediente solo sale de ahí cuando le pides a Claude que publique la página del artifact.
 
 ## El comando
 
 | Comando | Qué hace |
 |---|---|
 | `/casebook` | Abre el panel |
-| `/casebook export` | Escribe el expediente en Markdown en `casebook-<objetivo>.md`, en la carpeta de la sesión |
-| `/casebook export <archivo>` | Lo escribe en ese archivo, siempre como `.md` |
+| `/casebook export` | Escribe el expediente en Markdown junto al diario, en `~/.rea-casebook/<fecha>/<sesión>.md` |
 | `/casebook artifact` | Escribe el expediente como página y te da la petición para que Claude lo publique como artifact privado de claude.ai; una vez publicado, la petición nombra el mismo artifact |
 
-La exportación incluye el objetivo (nombre, formato, arquitectura y SHA-256), el arranque en frío, los hallazgos con su evidencia, confianza y autoridad, las preguntas abiertas y la lista de evidencia. Nombra el archivo, nunca su ruta local.
+La exportación incluye el objetivo (nombre, formato, arquitectura y SHA-256), el arranque en frío, los hallazgos con su evidencia, confianza y autoridad, las preguntas abiertas y la lista de evidencia. Nombra el objetivo por su nombre de archivo, nunca por su ruta local. El comando no admite ningún nombre de archivo: la exportación va siempre a ese sitio.
 
 El artifact es una página con las mismas secciones, con tema claro y oscuro y cada `evidence_id` completo. El mod la escribe junto al diario y responde con una petición para que se la des a Claude, como `Publica <página> con la herramienta Artifact como artifact privado nuevo …`. Claude la publica entonces en un turno visible, donde decides como en cualquier otra llamada. Cuando Claude ya la ha publicado, la siguiente petición nombra ese artifact, así que se actualiza en el mismo sitio. Para publicarla hace falta una sesión que ofrezca la herramienta Artifact, como la app de escritorio de Claude.
 
@@ -86,24 +85,38 @@ Cuando Claude publica el artifact por ti, antes lee la página que el mod escrib
 }
 ```
 
-El mod escribe archivos a través del motor, sin pasar por tus reglas: el diario en `~/.rea-casebook/` tras cada cambio, la página del artifact a su lado y el archivo que indiques a `/casebook export` cuando lo ejecutas. `/casebook artifact` nunca publica por su cuenta: la llamada a Artifact la hace Claude cuando se lo pides, y se aplican tus reglas.
+El mod escribe archivos a través del motor, sin pasar por tus reglas: el diario en `~/.rea-casebook/` tras cada cambio y, a su lado, la exportación en Markdown y la página del artifact cuando las pides. `/casebook artifact` nunca publica por su cuenta: la llamada a Artifact la hace Claude cuando se lo pides, y se aplican tus reglas.
 
 ## Qué ejecuta, escribe y envía
 
-Todo lo que el mod hace por su cuenta, para quien quiera revisarlo antes de instalarlo:
+Todo lo que el mod hace por su cuenta, para quien quiera revisarlo antes de instalarlo.
 
-- **Hooks.**
-  - `tool.call` sobre las herramientas de rea (`mcp__rea__*`): lee cada resultado para actualizar el expediente y se lo devuelve al agente sin cambios.
-  - `tool.call` sobre `mcp__rea-casebook__record_finding`: responde a la herramienta propia del mod, como se describe más arriba.
-  - `tool.call` sobre `Artifact`: cuando una llamada publica la página del expediente, lee la URL del artifact en su resultado y devuelve el resultado sin cambios. Cualquier otra llamada a Artifact pasa sin tocarse.
-  - `command.run` para `/casebook`, `ui.render` para el panel y `session.start` para registrar la herramienta, el comando y un temporizador de un segundo que solo vuelve a dibujar el contador de espera.
-- **Archivos que escribe.**
-  - `~/.rea-casebook/<día>/<sesión>.jsonl`, el diario, tras cada cambio.
-  - `~/.rea-casebook/<día>/<sesión>.html`, la página del artifact, cuando ejecutas `/casebook artifact`.
-  - El archivo `.md` de `/casebook export`. La exportación nunca escribe `CLAUDE.md`, `AGENTS.md`, `GEMINI.md` ni nada dentro de `.claude/`.
+### Qué hacen los hooks
 
-  No escribe configuración, scripts ni instrucciones.
-- **Qué lee.** Los resultados de las llamadas a rea que el agente ya hizo, un resultado de rea que el cliente guardó en un archivo por ser demasiado grande y la variable de entorno `USERPROFILE` o `HOME`, solo para encontrar tu carpeta personal. No lee credenciales.
+| Hook | Qué hace |
+|---|---|
+| `tool.call` sobre las herramientas de rea (`mcp__rea__*`) | Lee cada resultado para actualizar el expediente y devuelve lo que da `next`, sin cambios. Nunca rechaza, repite ni reescribe una llamada a rea |
+| `tool.call` sobre `Artifact` | Cuando una llamada publica la página del expediente, lee la URL del artifact en su resultado. Devuelve lo que da `next`, sin cambios, en todas las llamadas a Artifact |
+| `tool.call` sobre `mcp__rea-casebook__record_finding` | Sustituye a una sola herramienta, la propia `record_finding` del mod, en todas sus llamadas: este hook es la implementación de esa herramienta, así que responde sin `next`. Registra el hallazgo o lo rechaza, como se describe más arriba. No sustituye a ninguna otra herramienta |
+| `command.run` sobre `/casebook` | Abre el panel o escribe una de las dos exportaciones |
+| `ui.render` sobre el panel | Dibuja el expediente |
+| `session.start` | Registra `record_finding`, el comando y un temporizador de un segundo que solo vuelve a dibujar el contador de espera |
+
+### Qué escribe el mod
+
+Escribe exactamente tres archivos, todos en una misma carpeta dentro de tu carpeta personal, `~/.rea-casebook/<fecha>/`, con el nombre de la sesión y una extensión fija:
+
+| Archivo | Cuándo |
+|---|---|
+| `<sesión>.jsonl`, el diario | Tras cada cambio en el expediente |
+| `<sesión>.md`, la exportación en Markdown | Cuando ejecutas `/casebook export` |
+| `<sesión>.html`, la página del artifact | Cuando ejecutas `/casebook artifact` |
+
+Ningún comando admite una ruta, y el identificador de sesión del nombre se reduce a letras, dígitos, `_` y `-`, así que ningún archivo acaba fuera de esa carpeta. El mod no escribe nada en tu proyecto y nunca escribe ni edita archivos de compilación, de arranque, de configuración ni de instrucciones.
+
+### Qué lee, a qué llama y qué envía
+
+- **Qué lee.** Los resultados de las llamadas a rea que el agente ya hizo y un resultado de rea que el cliente guardó en un archivo por ser demasiado grande. También lee la variable de entorno `USERPROFILE` (Windows) o `HOME` (macOS y Linux), solo para encontrar tu carpeta personal para los tres archivos de arriba, porque el motor no ofrece a un mod otra forma de encontrarla. Ninguna de las dos es una credencial, y el mod no lee tokens, claves ni contraseñas.
 - **Herramientas que llama por su cuenta.** Ninguna. Nunca llama a rea, a Artifact ni a ninguna otra herramienta; `record_finding` la llama el modelo.
 - **Prompts que envía.** Ninguno. `/casebook artifact` te muestra una petición para Claude, pero no la envía.
 - **Red.** Ninguna. Lo único que sale de tu equipo es la página del artifact que pides a Claude que publique, a través de la herramienta Artifact de Claude Code.
@@ -150,7 +163,7 @@ claude --plugin-dir .
 
 ## Estado
 
-Versión 1.0: el panel, los hallazgos que tienen que citar evidencia real, el diario de la sesión y las exportaciones a Markdown y a artifact, probados en Ubuntu, macOS y Windows y usados en sesiones reales con rea 6.4.0. Desde la 1.0.3, el mod no llama a ninguna herramienta ni envía prompts por su cuenta: `/casebook artifact` escribe la página y eres tú quien le pide a Claude que la publique. El diseño está documentado en [rea-lab](https://github.com/pablodiazjorge/rea-lab) (ADR 0015 a 0017).
+Versión 1.0: el panel, los hallazgos que tienen que citar evidencia real, el diario de la sesión y las exportaciones a Markdown y a artifact, probados en Ubuntu, macOS y Windows y usados en sesiones reales con rea 6.4.0. Desde la 1.0.3, el mod no llama a ninguna herramienta ni envía prompts por su cuenta: `/casebook artifact` escribe la página y eres tú quien le pide a Claude que la publique. Desde la 1.0.4, todos los archivos que escribe van a `~/.rea-casebook/` y `/casebook export` no admite ningún nombre de archivo. El diseño está documentado en [rea-lab](https://github.com/pablodiazjorge/rea-lab) (ADR 0015 a 0017).
 
 ## Licencia
 

@@ -11,9 +11,11 @@ export const HOME = 'D:\\home\\tester'
 export const PANE = 'rea-casebook'
 export const FINDING_TOOL = 'mcp__rea-casebook__record_finding'
 export const ARTIFACT_URL = 'https://claude.ai/code/artifact/0c4b5e1d-casebook'
-/** Where this world's session keeps its journal and page, as `pathKey` writes them. */
+/** Where this world's session keeps its journal, page and Markdown export, as `pathKey` writes them. */
 export const JOURNAL = 'D:/home/tester/.rea-casebook/2026-10-12/sess-1.jsonl'
 export const PAGE = 'D:/home/tester/.rea-casebook/2026-10-12/sess-1.html'
+export const MARKDOWN = 'D:/home/tester/.rea-casebook/2026-10-12/sess-1.md'
+export const CASEBOOK_FOLDER = 'D:/home/tester/.rea-casebook/'
 
 export const PANE_PROPS = {
   title: 'Casebook',
