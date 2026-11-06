@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Claude_Code-%E2%89%A5_2.1.296-D97757?logo=claude&logoColor=fff" alt="Claude Code 2.1.296 or newer">
+  <img src="https://img.shields.io/badge/Claude_Code-%E2%89%A5_2.1.296-grey" alt="Claude Code 2.1.296 or newer">
   <img src="https://img.shields.io/badge/version-1.0.4-blue" alt="Version">
   <img src="https://img.shields.io/badge/type-mod-6f42c1" alt="Claude Code mod">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
@@ -15,7 +15,7 @@
 
 ![A Claude Code session in a dark theme: on the left, the agent analyses a challenge binary with rea and records findings with record_finding; on the right, the Casebook pane lists the target, a Ghidra cold start of 18 seconds, seven findings, two open unknowns and eighteen Evidence records](media/session-dark.png)
 
-rea answers each analysis call with an Evidence record: an `evidence_id`, what was asked, how sure it is (observed, derived or inferred) and where it comes from. Those records live in rea's memory for as long as the MCP connection lasts, and in the transcript they scroll away among the model's text. rea-casebook collects them in a pane as they arrive, makes the wait for Ghidra visible, and gives the model a tool to record findings that **must cite Evidence rea actually delivered**.
+rea answers each analysis call with an Evidence record: an `evidence_id`, what was asked, how sure it is (observed, derived or inferred) and where it comes from. rea keeps those records for the MCP connection, until `close_binary`, and can write them to a file with `export_evidence_bundle`; in the transcript they scroll away among the model's text. rea-casebook collects them in a pane as they arrive, makes the wait for Ghidra visible, and gives the model a tool to record findings that **must cite Evidence rea actually delivered**.
 
 It needs rea registered as an MCP server named `rea` (its tools appear as `mcp__rea__*`). It works with any binary rea opens; it was built on Windows with rea 6.4.0 and Ghidra 12.1.
 
@@ -51,7 +51,7 @@ The ids of the mutation Evidence that `record_unknown` and `update_unknown` retu
 2. When a result is too large for the client and is saved to a file, the mod reads the Evidence from that file.
 3. The mod never calls rea on its own. Everything it shows is what the agent already received.
 4. The state lives in the session (`$.state`) and is drawn by the pane. A second `open_binary` keeps the Evidence of the first, so comparing two builds keeps both.
-5. Each change rewrites the session's journal, `~/.rea-casebook/<date>/<session>.jsonl`: a line for the session and its counters, one for the target with its file name and SHA-256 (never its local path), and one per Evidence record, unknown and finding, in the order they happened. The journal and both exports stay in that folder; the casebook only leaves it when you ask Claude to publish the artifact page.
+5. Each change rewrites the session's journal, `~/.rea-casebook/<date>/<session>.jsonl`: a line for the session and its counters (and, once you publish the page, that artifact's URL), one for the target with its file name and SHA-256 (never its local path), and one per Evidence record (its id, operation, confidence, authority and up to two of the call's parameters, not rea's result), unknown and finding, in the order they happened. A rea tool that takes a path, such as `inspect_pe_resources` or the Android tools, can put that path in those parameters. The journal and both exports stay in that folder; the casebook only leaves it when you ask Claude to publish the artifact page.
 
 ## The command
 
@@ -67,7 +67,7 @@ The artifact is a page with the same sections, in light and dark themes, with ev
 
 ## Language
 
-In `/config`, under rea-casebook, **Language** is `English` (the default) or `Español`. It sets the pane, the export and what Claude reads when a finding is refused. The tool's description stays in English, the language the model reads best.
+In `/config`, under rea-casebook, **Language** is `English` (the default) or `Español`. It sets the pane, the export and what Claude reads when a finding is refused. The tool's description stays in English in both languages.
 
 ## Permissions
 
@@ -116,7 +116,7 @@ No command takes a path, and the session id in the name is cut to letters, digit
 
 ### What it reads, calls and sends
 
-- **What it reads.** The results of the rea calls the agent already made, and a rea result that the client saved to a file because it was too large. It also reads the environment variable `USERPROFILE` (Windows) or `HOME` (macOS and Linux), only to find your home folder for the three files above, because the engine gives a mod no other way to find it. Neither variable is a credential, and the mod reads no token, key or password.
+- **What it reads.** The results of the rea calls the agent already made, and a rea result that the client saved to a file because it was too large. It reads the Claude Code session id to name the three files. It also reads the environment variable `USERPROFILE` (Windows) or `HOME` (macOS and Linux), only to find your home folder for the three files above, because the engine gives a mod no other way to find it. Neither variable is a credential, and the mod reads no token, key or password.
 - **Tools it calls by itself.** None. It never calls rea, Artifact or any other tool; `record_finding` is called by the model.
 - **Prompts it submits.** None. `/casebook artifact` shows you a request to give Claude; it does not send it.
 - **Network.** None. The only data that leaves your machine is the artifact page you ask Claude to publish, through Claude Code's Artifact tool.
@@ -143,7 +143,7 @@ claude plugin install rea-casebook@rea-casebook
 
 ## Development
 
-Reading rea's results, the casebook's state, the journal, both exports and the words are plain modules tested directly. The hooks are tested against a simulated engine whose rea answers with real rea 6.4.0 results, with local paths replaced (`tests/fixtures/rea.ts`).
+Reading rea's results, the casebook's state, the journal, both exports and the words are plain modules tested directly. The hooks are tested against a simulated engine whose rea answers with real rea 6.4.0 results, with local paths replaced (`tests/fixtures/rea.ts`). The fixtures contain output of rea (copyright morluto, MIT License) and Ghidra (Apache License 2.0) on binaries built in rea-lab.
 
 ```bash
 claude plugin validate .claude-plugin/plugin.json
@@ -164,6 +164,13 @@ claude --plugin-dir .
 ## Status
 
 Version 1.0: the pane, findings that must cite real Evidence, the session journal and the Markdown and artifact exports, tested on Ubuntu, macOS and Windows and used in real sessions with rea 6.4.0. Since 1.0.3 the mod calls no tool and submits no prompt by itself: `/casebook artifact` writes the page and you ask Claude to publish it. Since 1.0.4 every file it writes goes to `~/.rea-casebook/`, and `/casebook export` takes no file name. The design is recorded in [rea-lab](https://github.com/pablodiazjorge/rea-lab) (ADRs 0015 to 0017).
+
+## Disclaimer
+
+- rea-casebook is a personal, independent project, built on my own equipment and unrelated to my job: it uses no data, code or resources from the company I work for, and it was not made at that company's request. The opinions in it are mine alone.
+- It is not affiliated with, sponsored or endorsed by morluto or the rea project, Anthropic, the NSA or the Ghidra project, or any other company or project named here; their names only identify their products. The name says which tool the mod works with, not who makes it.
+- The mod analyses nothing by itself: it shows what rea already returned to the agent. Use the mod and rea only on software you are entitled to analyse. It contains no means to remove or bypass copy protection, licence checks, DRM or obfuscation.
+- Code, text and images are provided as is under the [MIT License](LICENSE), without warranty of any kind. The pane and the exports show what rea and the model returned, which can be incomplete or wrong: check the Evidence before relying on a finding.
 
 ## License
 

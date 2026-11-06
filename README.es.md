@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Claude_Code-%E2%89%A5_2.1.296-D97757?logo=claude&logoColor=fff" alt="Claude Code 2.1.296 o posterior">
+  <img src="https://img.shields.io/badge/Claude_Code-%E2%89%A5_2.1.296-grey" alt="Claude Code 2.1.296 o posterior">
   <img src="https://img.shields.io/badge/versi%C3%B3n-1.0.4-blue" alt="Versión">
   <img src="https://img.shields.io/badge/tipo-mod-6f42c1" alt="Mod de Claude Code">
   <img src="https://img.shields.io/badge/licencia-MIT-green" alt="Licencia">
@@ -15,7 +15,7 @@
 
 ![Una sesión de Claude Code con tema oscuro: a la izquierda, el agente analiza un binario de reto con rea y registra hallazgos con record_finding; a la derecha, el panel Casebook muestra el objetivo, un arranque en frío de Ghidra de 18 segundos, siete hallazgos, dos preguntas abiertas y dieciocho registros de evidencia](media/session-dark.png)
 
-rea responde a cada consulta de análisis con un registro de evidencia (Evidence): un `evidence_id`, qué se preguntó, qué seguridad tiene (observado, derivado o inferido) y de dónde sale. Esos registros viven en la memoria de rea mientras dura la conexión MCP y, en la conversación, se pierden entre el texto del modelo. rea-casebook los reúne en un panel a medida que llegan, hace visible la espera de Ghidra y da al modelo una herramienta para registrar hallazgos que **tienen que citar evidencia que rea haya entregado de verdad**.
+rea responde a cada consulta de análisis con un registro de evidencia (Evidence): un `evidence_id`, qué se preguntó, qué seguridad tiene (observado, derivado o inferido) y de dónde sale. rea guarda esos registros durante la conexión MCP, hasta `close_binary`, y puede escribirlos en un archivo con `export_evidence_bundle`; en la conversación se pierden entre el texto del modelo. rea-casebook los reúne en un panel a medida que llegan, hace visible la espera de Ghidra y da al modelo una herramienta para registrar hallazgos que **tienen que citar evidencia que rea haya entregado de verdad**.
 
 Necesita rea registrado como servidor MCP con el nombre `rea` (sus herramientas aparecen como `mcp__rea__*`). Funciona con cualquier binario que rea abra; se ha construido en Windows con rea 6.4.0 y Ghidra 12.1.
 
@@ -51,7 +51,7 @@ Los identificadores de la evidencia de mutación que devuelven `record_unknown` 
 2. Cuando un resultado es demasiado grande para el cliente y se guarda en un archivo, el mod lee la evidencia de ese archivo.
 3. El mod nunca llama a rea por su cuenta. Todo lo que muestra es lo que el agente ya recibió.
 4. El estado vive en la sesión (`$.state`) y lo dibuja el panel. Un segundo `open_binary` conserva la evidencia del primero, así que al comparar dos compilaciones se mantienen las dos.
-5. Cada cambio reescribe el diario de la sesión, `~/.rea-casebook/<fecha>/<sesión>.jsonl`: una línea para la sesión y sus contadores, otra para el objetivo con su nombre de archivo y su SHA-256 (nunca su ruta local) y una por cada registro de evidencia, pregunta y hallazgo, en el orden en que ocurrieron. El diario y las dos exportaciones se quedan en esa carpeta; el expediente solo sale de ahí cuando le pides a Claude que publique la página del artifact.
+5. Cada cambio reescribe el diario de la sesión, `~/.rea-casebook/<fecha>/<sesión>.jsonl`: una línea para la sesión y sus contadores (y, una vez publicada la página, la URL de ese artifact), otra para el objetivo con su nombre de archivo y su SHA-256 (nunca su ruta local) y una por cada registro de evidencia (su identificador, operación, confianza, autoridad y hasta dos parámetros de la llamada, no el resultado de rea), pregunta y hallazgo, en el orden en que ocurrieron. Una herramienta de rea que recibe una ruta, como `inspect_pe_resources` o las de Android, puede dejar esa ruta en esos parámetros. El diario y las dos exportaciones se quedan en esa carpeta; el expediente solo sale de ahí cuando le pides a Claude que publique la página del artifact.
 
 ## El comando
 
@@ -67,7 +67,7 @@ El artifact es una página con las mismas secciones, con tema claro y oscuro y c
 
 ## Idioma
 
-En `/config`, dentro de rea-casebook, **Language** es `English` (el predeterminado) o `Español`. Afecta al panel, a la exportación y a lo que lee Claude cuando se rechaza un hallazgo. La descripción de la herramienta se queda en inglés, el idioma que mejor lee el modelo.
+En `/config`, dentro de rea-casebook, **Language** es `English` (el predeterminado) o `Español`. Afecta al panel, a la exportación y a lo que lee Claude cuando se rechaza un hallazgo. La descripción de la herramienta se queda en inglés en los dos idiomas.
 
 ## Permisos
 
@@ -116,7 +116,7 @@ Ningún comando admite una ruta, y el identificador de sesión del nombre se red
 
 ### Qué lee, a qué llama y qué envía
 
-- **Qué lee.** Los resultados de las llamadas a rea que el agente ya hizo y un resultado de rea que el cliente guardó en un archivo por ser demasiado grande. También lee la variable de entorno `USERPROFILE` (Windows) o `HOME` (macOS y Linux), solo para encontrar tu carpeta personal para los tres archivos de arriba, porque el motor no ofrece a un mod otra forma de encontrarla. Ninguna de las dos es una credencial, y el mod no lee tokens, claves ni contraseñas.
+- **Qué lee.** Los resultados de las llamadas a rea que el agente ya hizo y un resultado de rea que el cliente guardó en un archivo por ser demasiado grande. Lee el identificador de la sesión de Claude Code para nombrar los tres archivos. También lee la variable de entorno `USERPROFILE` (Windows) o `HOME` (macOS y Linux), solo para encontrar tu carpeta personal para los tres archivos de arriba, porque el motor no ofrece a un mod otra forma de encontrarla. Ninguna de las dos es una credencial, y el mod no lee tokens, claves ni contraseñas.
 - **Herramientas que llama por su cuenta.** Ninguna. Nunca llama a rea, a Artifact ni a ninguna otra herramienta; `record_finding` la llama el modelo.
 - **Prompts que envía.** Ninguno. `/casebook artifact` te muestra una petición para Claude, pero no la envía.
 - **Red.** Ninguna. Lo único que sale de tu equipo es la página del artifact que pides a Claude que publique, a través de la herramienta Artifact de Claude Code.
@@ -143,7 +143,7 @@ claude plugin install rea-casebook@rea-casebook
 
 ## Desarrollo
 
-La lectura de los resultados de rea, el estado del expediente, el diario, las dos exportaciones y los textos son módulos sin dependencias del motor que se prueban directamente. Los hooks se prueban contra un motor simulado cuyo rea responde con resultados reales de rea 6.4.0, con las rutas locales sustituidas (`tests/fixtures/rea.ts`).
+La lectura de los resultados de rea, el estado del expediente, el diario, las dos exportaciones y los textos son módulos sin dependencias del motor que se prueban directamente. Los hooks se prueban contra un motor simulado cuyo rea responde con resultados reales de rea 6.4.0, con las rutas locales sustituidas (`tests/fixtures/rea.ts`). Los fixtures contienen salida de rea (copyright de morluto, licencia MIT) y de Ghidra (licencia Apache 2.0) sobre binarios compilados en rea-lab.
 
 ```bash
 claude plugin validate .claude-plugin/plugin.json
@@ -164,6 +164,13 @@ claude --plugin-dir .
 ## Estado
 
 Versión 1.0: el panel, los hallazgos que tienen que citar evidencia real, el diario de la sesión y las exportaciones a Markdown y a artifact, probados en Ubuntu, macOS y Windows y usados en sesiones reales con rea 6.4.0. Desde la 1.0.3, el mod no llama a ninguna herramienta ni envía prompts por su cuenta: `/casebook artifact` escribe la página y eres tú quien le pide a Claude que la publique. Desde la 1.0.4, todos los archivos que escribe van a `~/.rea-casebook/` y `/casebook export` no admite ningún nombre de archivo. El diseño está documentado en [rea-lab](https://github.com/pablodiazjorge/rea-lab) (ADR 0015 a 0017).
+
+## Aviso
+
+- rea-casebook es un proyecto personal e independiente, hecho con mi propio equipo y sin relación con mi trabajo: no usa datos, código ni recursos de la empresa en la que trabajo, ni nació de un encargo suyo. Las opiniones que contiene son solo mías.
+- No tiene relación con morluto, el proyecto rea, Anthropic, la NSA, el proyecto Ghidra ni ninguna otra empresa o proyecto que se nombre aquí, ni cuenta con su patrocinio o aval; sus nombres solo identifican sus productos. El nombre indica con qué herramienta funciona el mod, no quién lo hace.
+- El mod no analiza nada por su cuenta: muestra lo que rea ya devolvió al agente. Usa el mod y rea solo con software que tengas derecho a analizar. No contiene medios para suprimir o eludir protecciones anticopia, comprobaciones de licencia, DRM u ofuscación.
+- El código, los textos y las imágenes se ofrecen tal cual bajo la [licencia MIT](LICENSE), sin garantía de ningún tipo. El panel y las exportaciones muestran lo que devolvieron rea y el modelo, que puede estar incompleto o equivocado: comprueba la evidencia antes de fiarte de un hallazgo.
 
 ## Licencia
 
